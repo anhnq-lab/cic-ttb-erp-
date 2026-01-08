@@ -12,6 +12,7 @@ import BusinessTripModal from '../components/BusinessTripModal'; // Import Modal
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { PROJECTS, MOCK_USERS } from '../constants';
 import { ProjectService } from '../services/project.service';
+import { TimesheetService } from '../services/timesheet.service';
 import { AIService } from '../services/AIService';
 
 const KPI_DATA = [
@@ -373,11 +374,39 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
     // Timesheet State
     const [timesheetType, setTimesheetType] = useState<'normal' | 'ot'>('normal');
     const [selectedProject, setSelectedProject] = useState('');
+    const [selectedTaskId, setSelectedTaskId] = useState('');
+    const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+    const [logHours, setLogHours] = useState<string>('8');
+    const [logWorkType, setLogWorkType] = useState('Modeling');
+    const [logDesc, setLogDesc] = useState('');
+
+    const handleSaveTimesheet = async () => {
+        if (!selectedProject || !selectedTaskId || !logHours) {
+            alert("Vui lòng nhập đầy đủ thông tin: Dự án, Công việc và Số giờ.");
+            return;
+        }
+
+        try {
+            await TimesheetService.logTaskHours({
+                projectId: selectedProject,
+                employeeId: 'u1', // Hardcoded as current user 'u1' (Nguyen Van A)
+                date: logDate,
+                hours: parseFloat(logHours),
+                taskId: selectedTaskId,
+                workType: logWorkType as any,
+                description: logDesc + (timesheetType === 'ot' ? ' (OT)' : '')
+            });
+            alert("Đã lưu chấm công thành công! Dữ liệu đã được cập nhật vào bảng công dự án.");
+            setLogDesc(''); // Clear description
+        } catch (error: any) {
+            alert("Lỗi: " + error.message);
+        }
+    };
 
     const handleSubmit = (type: string) => {
         // Mock submission
         if (type === 'timesheet') {
-            alert(`Đã lưu chấm công thành công!`);
+            handleSaveTimesheet();
         } else {
             alert(`Đã gửi yêu cầu "${type === 'leave' ? 'Xin nghỉ phép' : type === 'purchase' ? 'Mua sắm' : 'Đặt xe'}" thành công!`);
         }
