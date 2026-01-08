@@ -1,0 +1,34 @@
+{
+  "homepage": "https://anhnq-lab.github.io/cic-ttb-erp",
+  "name": "bim-master-pro",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/pg": "^8.16.0",
+    "gantt-task-react": "^0.3.9",
+    "lucide-react": "0.358.0",
+    "pg": "^8.16.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "6.22.3",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1",
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "dotenv": "^17.2.3",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,14 @@
+
+-- Add new columns for Project Data Import
+-- Run this in Supabase SQL Editor
+
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "serviceType" VARCHAR(255);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "area" VARCHAR(255);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "unitPrice" VARCHAR(255);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "phase" VARCHAR(255);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "scope" TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "statusDetail" TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "failureReason" TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "folderUrl" TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "completedAt" DATE;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS "deliverables" TEXT;
