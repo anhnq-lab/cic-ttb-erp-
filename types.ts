@@ -28,6 +28,7 @@ export enum TaskStatus {
   PENDING = 'Đang chờ',
   S0 = 'S0 Đang thực hiện', // Đang triển khai
   S1 = 'S1 Phối hợp', // Phối hợp
+  S2 = 'S2 Kiểm tra chéo', // Kiểm tra bộ môn/chéo
   S3 = 'S3 Duyệt nội bộ', // Kiểm tra nội bộ
   S4 = 'S4 Lãnh đạo duyệt', // Lãnh đạo duyệt
   S4_1 = 'S4.1 Sửa theo LĐ', // Sửa theo comment CIC

@@ -8,8 +8,10 @@ const STATUS_SEQUENCE = [
     TaskStatus.OPEN,
     TaskStatus.S0,
     TaskStatus.S1,
+    TaskStatus.S2,
     TaskStatus.S3,
     TaskStatus.S4,
+    TaskStatus.S5,
     TaskStatus.S6,
     TaskStatus.COMPLETED
 ];
@@ -115,8 +117,10 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ tasks, onMoveTask, onEdit
         [TaskStatus.OPEN]: tasks.filter(t => t.status === TaskStatus.OPEN),
         [TaskStatus.S0]: tasks.filter(t => t.status === TaskStatus.S0),
         [TaskStatus.S1]: tasks.filter(t => t.status === TaskStatus.S1),
+        [TaskStatus.S2]: tasks.filter(t => t.status === TaskStatus.S2),
         [TaskStatus.S3]: tasks.filter(t => t.status === TaskStatus.S3),
         [TaskStatus.S4]: tasks.filter(t => t.status === TaskStatus.S4),
+        [TaskStatus.S5]: tasks.filter(t => t.status === TaskStatus.S5),
         [TaskStatus.S6]: tasks.filter(t => t.status === TaskStatus.S6),
         [TaskStatus.COMPLETED]: tasks.filter(t => t.status === TaskStatus.COMPLETED),
     };
@@ -126,8 +130,10 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ tasks, onMoveTask, onEdit
             <KanbanColumn title="Chưa thực hiện" status={TaskStatus.OPEN} tasks={tasksByStatus[TaskStatus.OPEN]} count={tasksByStatus[TaskStatus.OPEN]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S0 - Đang triển khai" status={TaskStatus.S0} tasks={tasksByStatus[TaskStatus.S0]} count={tasksByStatus[TaskStatus.S0]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S1 - Phối hợp bộ môn" status={TaskStatus.S1} tasks={tasksByStatus[TaskStatus.S1]} count={tasksByStatus[TaskStatus.S1]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+            <KanbanColumn title="S2 - Kiểm tra chéo" status={TaskStatus.S2} tasks={tasksByStatus[TaskStatus.S2]} count={tasksByStatus[TaskStatus.S2]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S3 - Kiểm tra nội bộ" status={TaskStatus.S3} tasks={tasksByStatus[TaskStatus.S3]} count={tasksByStatus[TaskStatus.S3]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S4 - Lãnh đạo duyệt" status={TaskStatus.S4} tasks={tasksByStatus[TaskStatus.S4]} count={tasksByStatus[TaskStatus.S4]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+            <KanbanColumn title="S5 - Đã duyệt (Chờ trình)" status={TaskStatus.S5} tasks={tasksByStatus[TaskStatus.S5]} count={tasksByStatus[TaskStatus.S5]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S6 - Trình khách hàng" status={TaskStatus.S6} tasks={tasksByStatus[TaskStatus.S6]} count={tasksByStatus[TaskStatus.S6]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="Hoàn thành" status={TaskStatus.COMPLETED} tasks={tasksByStatus[TaskStatus.COMPLETED]} count={tasksByStatus[TaskStatus.COMPLETED]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
         </div>
