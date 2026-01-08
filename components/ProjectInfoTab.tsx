@@ -161,7 +161,7 @@ const ProjectInfoTab: React.FC<ProjectInfoTabProps> = ({ project, contract }) =>
                             {project.deliverables && (
                                 <InfoCard title="Sản phẩm bàn giao" icon={Award}>
                                     <div className="bg-slate-50 rounded-lg p-4 border border-gray-100">
-                                        <p className="text-sm text-slate-700 font-mono whitespace-pre-line leading-loose">
+                                        <p className="text-sm text-slate-700 whitespace-pre-line leading-loose">
                                             {project.deliverables}
                                         </p>
                                     </div>

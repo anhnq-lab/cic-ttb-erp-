@@ -40,7 +40,7 @@ export const PROJECTS: Project[] = [
     status: ProjectStatus.IN_PROGRESS,
     progress: 25,
     budget: 259200000,
-    spent: 64800000,
+    spent: 60000000,
     deadline: "2025-07-14",
     members: 5,
     thumbnail: "https://images.unsplash.com/photo-1581091870622-1b66f37aed6f?w=500&auto=format",
