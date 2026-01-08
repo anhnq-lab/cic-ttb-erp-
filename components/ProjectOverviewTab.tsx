@@ -2,7 +2,7 @@ import React from 'react';
 import { Project, Task, ProjectMember, Contract } from '../types';
 import {
     Activity, TrendingUp, AlertTriangle, CheckCircle2,
-    Clock, DollarSign, Users, Briefcase, ChevronRight, User
+    Clock, DollarSign, Users, Briefcase, ChevronRight, User as UserIcon
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -31,6 +31,8 @@ const StatCard = ({ title, value, subValue, icon: Icon, colorClass, bgClass }: a
 );
 
 const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks = [], members = [], contracts = [] }) => {
+    if (!project) return <div className="p-4 text-center text-gray-400">Đang tải dữ liệu tổng quan...</div>;
+
     // Calculations
     const totalBudget = contracts.reduce((sum, c) => sum + c.totalValue, 0) || project.budget || 0;
     const spentBudget = project.spent || 0; // Mock spent
@@ -125,7 +127,7 @@ const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks 
                                         <div>
                                             <p className="font-bold text-slate-700 text-sm">{task.name}</p>
                                             <p className="text-xs text-gray-500 flex items-center gap-1">
-                                                <User size={10} /> {task.assignee?.name || 'Unassigned'} •
+                                                <UserIcon size={10} /> {task.assignee?.name || 'Unassigned'} •
                                                 <Clock size={10} /> {task.dueDate || 'N/A'}
                                             </p>
                                         </div>
