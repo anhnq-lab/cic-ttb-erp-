@@ -381,8 +381,16 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
     const [logDesc, setLogDesc] = useState('');
 
     const handleSaveTimesheet = async () => {
-        if (!selectedProject || !selectedTaskId || !logHours) {
-            alert("Vui lòng nhập đầy đủ thông tin: Dự án, Công việc và Số giờ.");
+        if (!selectedProject) {
+            alert("Vui lòng chọn Dự án.");
+            return;
+        }
+        if (!selectedTaskId) {
+            alert("Vui lòng chọn Công việc (Task). Nếu không thấy công việc, hãy đảm bảo bạn được gán việc trong dự án này.");
+            return;
+        }
+        if (!logHours) {
+            alert("Vui lòng nhập Số giờ làm việc.");
             return;
         }
 
@@ -429,13 +437,6 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                 </button>
 
                 <button
-                    onClick={() => setShowBusinessTripModal(true)}
-                    className="w-full text-left px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md hover:shadow-lg mb-4"
-                >
-                    <Plane size={18} className="text-orange-400" /> Lập Kế hoạch Công tác
-                </button>
-
-                <button
                     onClick={() => setRequestType('leave')}
                     className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${requestType === 'leave' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
@@ -452,6 +453,13 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                     className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${requestType === 'vehicle' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                     <Car size={18} /> Đặt xe công tác
+                </button>
+
+                <button
+                    onClick={() => setShowBusinessTripModal(true)}
+                    className="w-full text-left px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md hover:shadow-lg mt-4"
+                >
+                    <Plane size={18} className="text-orange-400" /> Lập Kế hoạch Công tác
                 </button>
             </div>
 
