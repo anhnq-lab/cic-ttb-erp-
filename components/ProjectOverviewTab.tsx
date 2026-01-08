@@ -1,9 +1,7 @@
 import React from 'react';
 import { Project, Task, ProjectMember, Contract } from '../types';
-import {
-    Activity, TrendingUp, AlertTriangle, CheckCircle2,
-    Clock, DollarSign, Users, Briefcase, ChevronRight
-} from 'lucide-react';
+Activity, TrendingUp, AlertTriangle, CheckCircle2,
+    Clock, DollarSign, Users, Briefcase, ChevronRight, User
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface ProjectOverviewTabProps {
