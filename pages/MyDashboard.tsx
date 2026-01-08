@@ -369,7 +369,7 @@ const MyDashboard = () => {
 };
 
 // --- REQUEST TAB COMPONENT (MOVED FROM HRMList.tsx) ---
-const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
+const RequestTab = ({ myTasks, allTasks }: { myTasks: any[], allTasks: any[] }) => {
     const [requestType, setRequestType] = useState('timesheet'); // timesheet, leave, purchase, vehicle
     const [showBusinessTripModal, setShowBusinessTripModal] = useState(false);
 
@@ -423,7 +423,7 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
         // Reset or redirect logic here if needed
     };
 
-    const filteredTasks = selectedProject ? myTasks.filter(t => t.projectId === selectedProject || t.projectName === selectedProject) : myTasks;
+    const filteredTasks = selectedProject && allTasks ? allTasks.filter(t => t.projectId === selectedProject || t.projectName === selectedProject) : [];
 
     return (
         <div className="flex flex-col md:flex-row gap-6 h-full">
