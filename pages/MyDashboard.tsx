@@ -512,43 +512,44 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                     </div>
                 )}
 
-                <div className="space-y-4 animate-fade-in-up">
-                    <div className="flex items-center gap-3 mb-4 border-b border-gray-200 pb-3">
-                        <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><CalendarOff size={20} /></div>
-                        <h3 className="font-bold text-gray-800">Tạo đơn xin nghỉ phép</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại nghỉ</label>
-                            <select className="w-full p-2 border rounded-lg text-sm bg-white"><option>Nghỉ phép năm</option><option>Nghỉ ốm</option><option>Nghỉ không lương</option></select>
+                {requestType === 'leave' && (
+                    <div className="space-y-4 animate-fade-in-up">
+                        <div className="flex items-center gap-3 mb-4 border-b border-gray-200 pb-3">
+                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><CalendarOff size={20} /></div>
+                            <h3 className="font-bold text-gray-800">Tạo đơn xin nghỉ phép</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại nghỉ</label>
+                                <select className="w-full p-2 border rounded-lg text-sm bg-white"><option>Nghỉ phép năm</option><option>Nghỉ ốm</option><option>Nghỉ không lương</option></select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số ngày</label>
+                                <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="1" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Từ ngày</label>
+                                <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Đến ngày</label>
+                                <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số ngày</label>
-                            <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="1" />
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Lý do</label>
+                            <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Nhập lý do nghỉ..."></textarea>
+                        </div>
+                        <div className="pt-2 flex justify-end">
+                            <button
+                                onClick={() => handleSubmit('leave')}
+                                className="px-6 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-md flex items-center gap-2">
+                                <Save size={16} /> Gửi đơn
+                            </button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Từ ngày</label>
-                            <input type="date" className="w-full p-2 border rounded-lg text-sm" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Đến ngày</label>
-                            <input type="date" className="w-full p-2 border rounded-lg text-sm" />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Lý do</label>
-                        <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Nhập lý do nghỉ..."></textarea>
-                    </div>
-                    <div className="pt-2 flex justify-end">
-                        <button
-                            onClick={() => handleSubmit('leave')}
-                            className="px-6 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-md flex items-center gap-2">
-                            <Save size={16} /> Gửi đơn
-                        </button>
-                    </div>
-                </div>
                 )}
 
                 {requestType === 'purchase' && (
