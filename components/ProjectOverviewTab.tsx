@@ -175,6 +175,47 @@ const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks 
                         </div>
                     </div>
 
+                    {/* Cost Chart */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col items-center">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase mb-4 self-start w-full border-b border-gray-100 pb-2">
+                            Chi phí dự án
+                        </h3>
+                        <div className="w-full h-40">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={[
+                                    { name: 'Ngân sách', value: totalBudget, color: '#3b82f6' },
+                                    { name: 'Thực chi', value: spentBudget, color: '#f97316' }
+                                ]}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#64748b' }} />
+                                    <YAxis hide />
+                                    <RechartsTooltip
+                                        formatter={(value: number) => formatCurrency(value)}
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                        {
+                                            [{ name: 'Ngân sách', value: totalBudget, color: '#3b82f6' }, { name: 'Thực chi', value: spentBudget, color: '#f97316' }].map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))
+                                        }
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="w-full mt-2 flex justify-between text-xs">
+                            <div>
+                                <span className="block text-gray-400">Ngân sách</span>
+                                <span className="font-bold text-blue-600">{formatCurrency(totalBudget)}</span>
+                            </div>
+                            <div className="text-right">
+                                <span className="block text-gray-400">Đã chi</span>
+                                <span className="font-bold text-orange-600">{formatCurrency(spentBudget)}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Quick Links */}
                     <div className="bg-indigo-600 rounded-2xl shadow-lg p-5 text-white">
                         <h3 className="font-bold mb-2 flex items-center gap-2">
