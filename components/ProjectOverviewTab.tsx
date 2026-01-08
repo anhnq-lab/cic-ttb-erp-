@@ -42,7 +42,11 @@ const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks,
     const activeRisks = 3; // Mock
     const riskLevel = 'Thấp';
 
-    const recentTasks = [...tasks].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).slice(0, 5);
+    const recentTasks = [...tasks].sort((a, b) => {
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return dateB - dateA;
+    }).slice(0, 5);
 
     const taskStatusData = [
         { name: 'Hoàn thành', value: completedTasks, color: '#10b981' },
@@ -114,15 +118,15 @@ const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks,
                                 <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-indigo-50 hover:border-indigo-100 transition-colors group">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${task.status === 'Hoàn thành' ? 'bg-emerald-100 text-emerald-600' :
-                                                task.status === 'Delayed' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
+                                            task.status === 'Delayed' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
                                             }`}>
-                                            {task.code.split('.').pop()}
+                                            {(task.code || 'T').split('.').pop()}
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-700 text-sm">{task.name}</p>
                                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                                 <User size={10} /> {task.assignee?.name || 'Unassigned'} •
-                                                <Clock size={10} /> {task.dueDate}
+                                                <Clock size={10} /> {task.dueDate || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
