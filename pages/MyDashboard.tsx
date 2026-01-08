@@ -44,6 +44,7 @@ import TaskModal from '../components/TaskModal'; // Import TaskModal
 const MyDashboard = () => {
     const [greeting, setGreeting] = useState('');
     const [myTasks, setMyTasks] = useState<any[]>([]);
+    const [allTasks, setAllTasks] = useState<any[]>([]); // New state
     const [isLoading, setIsLoading] = useState(true);
 
     // Task Modal State
@@ -62,10 +63,11 @@ const MyDashboard = () => {
     const fetchMyTasks = async () => {
         setIsLoading(true);
         try {
-            const allTasks = await ProjectService.getAllTasks();
+            const tasks = await ProjectService.getAllTasks();
+            setAllTasks(tasks); // Save all tasks
             // Mock: Filter tasks for 'u1' (Nguyen Van A) or show recent ones
-            const currentUserTasks = allTasks.filter(t => t.assignee?.id === 'u1' || t.assignee?.name === 'Nguyễn Văn A');
-            setMyTasks(currentUserTasks.length > 0 ? currentUserTasks : allTasks.slice(0, 5));
+            const currentUserTasks = tasks.filter(t => t.assignee?.id === 'u1' || t.assignee?.name === 'Nguyễn Văn A');
+            setMyTasks(currentUserTasks.length > 0 ? currentUserTasks : tasks.slice(0, 5));
         } catch (error) {
             console.error("Error fetching my tasks", error);
         } finally {
@@ -348,7 +350,7 @@ const MyDashboard = () => {
                         <h3 className="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
                             <MessageSquare className="text-orange-600" size={20} /> Đề xuất & Dịch vụ hành chính
                         </h3>
-                        <RequestTab myTasks={myTasks} />
+                        <RequestTab myTasks={myTasks} allTasks={allTasks} />
                     </div>
                 </div>
             </div>
@@ -459,7 +461,7 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                     onClick={() => setShowBusinessTripModal(true)}
                     className="w-full text-left px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md hover:shadow-lg mt-4"
                 >
-                    <Plane size={18} className="text-orange-400" /> Lập Kế hoạch Công tác
+                    <Plane size={18} className="text-orange-400" /> Lập Kế hoạch Công tác (Mới)
                 </button>
             </div>
 
