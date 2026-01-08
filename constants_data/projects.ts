@@ -43,7 +43,7 @@ export const PROJECTS: Project[] = [
     spent: 60000000,
     deadline: "2025-07-14",
     members: 5,
-    thumbnail: "https://images.unsplash.com/photo-1581091870622-1b66f37aed6f?w=500&auto=format",
+    thumbnail: "https://images.unsplash.com/photo-1565514020176-dbf2277f3742?w=500&auto=format",
     phase: "Thiết kế cơ sở/ Lập BC NC khả thi",
     scope: "Lập, dựng mô hình thông tin công trình (BIM) cho Dự án đầu tư xây dựng và kinh doanh kết cấu hạ tầng khu công nghiệp Trấn Yên (giai đoạn I). Bao gồm: Hệ thống San nền, Đường giao thông, Cấp thoát nước, Điện chiếu sáng, Cấp điện, Cây xanh, Nhà điều hành, Trạm xử lý nước thải/nước sạch...",
     deliverables: "1. Mô hình 3D (.rvt, .IFC)\n2. Báo cáo xung đột (.PDF, .xlsx)\n3. Bảng khối lượng trích xuất từ mô hình (.PDF, .xlsx)\n4. Bản vẽ trích xuất từ mô hình (.PDF, .dwg)"
