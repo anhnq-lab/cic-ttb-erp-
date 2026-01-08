@@ -1,7 +1,9 @@
 import React from 'react';
 import { Project, Task, ProjectMember, Contract } from '../types';
-Activity, TrendingUp, AlertTriangle, CheckCircle2,
+import {
+    Activity, TrendingUp, AlertTriangle, CheckCircle2,
     Clock, DollarSign, Users, Briefcase, ChevronRight, User
+} from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface ProjectOverviewTabProps {
@@ -23,12 +25,12 @@ const StatCard = ({ title, value, subValue, icon: Icon, colorClass, bgClass }: a
             {subValue && <p className={`text-xs font-medium mt-1 ${colorClass}`}>{subValue}</p>}
         </div>
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgClass}`}>
-            <Icon size={24} className={colorClass.replace('text-', 'text-')} />
+            {Icon && <Icon size={24} className={colorClass.replace('text-', 'text-')} />}
         </div>
     </div>
 );
 
-const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks, members, contracts }) => {
+const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks = [], members = [], contracts = [] }) => {
     // Calculations
     const totalBudget = contracts.reduce((sum, c) => sum + c.totalValue, 0) || project.budget || 0;
     const spentBudget = project.spent || 0; // Mock spent
