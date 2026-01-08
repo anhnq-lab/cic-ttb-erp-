@@ -347,7 +347,7 @@ const MyDashboard = () => {
                         <h3 className="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
                             <MessageSquare className="text-orange-600" size={20} /> Đề xuất & Dịch vụ hành chính
                         </h3>
-                        <RequestTab />
+                        <RequestTab myTasks={myTasks} />
                     </div>
                 </div>
             </div>
@@ -366,15 +366,25 @@ const MyDashboard = () => {
 };
 
 // --- REQUEST TAB COMPONENT (MOVED FROM HRMList.tsx) ---
-const RequestTab = () => {
-    const [requestType, setRequestType] = useState('leave'); // leave, purchase, vehicle
+const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
+    const [requestType, setRequestType] = useState('timesheet'); // timesheet, leave, purchase, vehicle
     const [showBusinessTripModal, setShowBusinessTripModal] = useState(false);
+
+    // Timesheet State
+    const [timesheetType, setTimesheetType] = useState<'normal' | 'ot'>('normal');
+    const [selectedProject, setSelectedProject] = useState('');
 
     const handleSubmit = (type: string) => {
         // Mock submission
-        alert(`Đã gửi yêu cầu "${type === 'leave' ? 'Xin nghỉ phép' : type === 'purchase' ? 'Mua sắm' : 'Đặt xe'}" thành công!`);
+        if (type === 'timesheet') {
+            alert(`Đã lưu chấm công thành công!`);
+        } else {
+            alert(`Đã gửi yêu cầu "${type === 'leave' ? 'Xin nghỉ phép' : type === 'purchase' ? 'Mua sắm' : 'Đặt xe'}" thành công!`);
+        }
         // Reset or redirect logic here if needed
     };
+
+    const filteredTasks = selectedProject ? myTasks.filter(t => t.projectId === selectedProject || t.projectName === selectedProject) : myTasks;
 
     return (
         <div className="flex flex-col md:flex-row gap-6 h-full">
@@ -382,6 +392,13 @@ const RequestTab = () => {
 
             {/* Sidebar Menu for Requests */}
             <div className="w-full md:w-64 flex-shrink-0 space-y-2">
+                <button
+                    onClick={() => setRequestType('timesheet')}
+                    className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${requestType === 'timesheet' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                    <Clock size={18} /> Chấm công
+                </button>
+
                 <button
                     onClick={() => setShowBusinessTripModal(true)}
                     className="w-full text-left px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md hover:shadow-lg mb-4"
@@ -411,44 +428,127 @@ const RequestTab = () => {
 
             {/* Form Content */}
             <div className="flex-1 bg-gray-50 p-6 rounded-xl border border-gray-200 h-fit">
-                {requestType === 'leave' && (
+
+                {requestType === 'timesheet' && (
                     <div className="space-y-4 animate-fade-in-up">
-                        <div className="flex items-center gap-3 mb-4 border-b border-gray-200 pb-3">
-                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><CalendarOff size={20} /></div>
-                            <h3 className="font-bold text-gray-800">Tạo đơn xin nghỉ phép</h3>
+                        <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Clock size={20} /></div>
+                                <h3 className="font-bold text-gray-800">Chấm công & Báo cáo giờ làm</h3>
+                            </div>
+                            <div className="flex bg-gray-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setTimesheetType('normal')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${timesheetType === 'normal' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Ngày thường
+                                </button>
+                                <button
+                                    onClick={() => setTimesheetType('ot')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${timesheetType === 'ot' ? 'bg-white shadow text-rose-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Làm thêm giờ
+                                </button>
+                            </div>
                         </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại nghỉ</label>
-                                <select className="w-full p-2 border rounded-lg text-sm bg-white"><option>Nghỉ phép năm</option><option>Nghỉ ốm</option><option>Nghỉ không lương</option></select>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dự án</label>
+                                <select
+                                    className="w-full p-2 border rounded-lg text-sm bg-white"
+                                    value={selectedProject}
+                                    onChange={(e) => setSelectedProject(e.target.value)}
+                                >
+                                    <option value="">-- Chọn dự án --</option>
+                                    {PROJECTS.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số ngày</label>
-                                <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="1" />
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Công việc / Task</label>
+                                <select className="w-full p-2 border rounded-lg text-sm bg-white">
+                                    <option value="">-- Chọn công việc --</option>
+                                    {filteredTasks.map((t: any) => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Từ ngày</label>
-                                <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ngày</label>
+                                <input type="date" className="w-full p-2 border rounded-lg text-sm" defaultValue={new Date().toISOString().split('T')[0]} />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Đến ngày</label>
-                                <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số giờ</label>
+                                <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="VD: 8" defaultValue={timesheetType === 'normal' ? 8 : 2} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại hình</label>
+                                <select className="w-full p-2 border rounded-lg text-sm bg-white">
+                                    <option>Dựng hình / Modeling</option>
+                                    <option>Họp / Meeting</option>
+                                    <option>Kiểm soát / Review</option>
+                                    <option>Khác</option>
+                                </select>
                             </div>
                         </div>
+
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Lý do</label>
-                            <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Nhập lý do nghỉ..."></textarea>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mô tả công việc</label>
+                            <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Mô tả chi tiết công việc đã làm..."></textarea>
                         </div>
+
                         <div className="pt-2 flex justify-end">
                             <button
-                                onClick={() => handleSubmit('leave')}
-                                className="px-6 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-md flex items-center gap-2">
-                                <Save size={16} /> Gửi đơn
+                                onClick={() => handleSubmit('timesheet')}
+                                className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md flex items-center gap-2">
+                                <Save size={16} /> Lưu chấm công
                             </button>
                         </div>
                     </div>
+                )}
+
+                <div className="space-y-4 animate-fade-in-up">
+                    <div className="flex items-center gap-3 mb-4 border-b border-gray-200 pb-3">
+                        <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><CalendarOff size={20} /></div>
+                        <h3 className="font-bold text-gray-800">Tạo đơn xin nghỉ phép</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại nghỉ</label>
+                            <select className="w-full p-2 border rounded-lg text-sm bg-white"><option>Nghỉ phép năm</option><option>Nghỉ ốm</option><option>Nghỉ không lương</option></select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số ngày</label>
+                            <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="1" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Từ ngày</label>
+                            <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Đến ngày</label>
+                            <input type="date" className="w-full p-2 border rounded-lg text-sm" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Lý do</label>
+                        <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Nhập lý do nghỉ..."></textarea>
+                    </div>
+                    <div className="pt-2 flex justify-end">
+                        <button
+                            onClick={() => handleSubmit('leave')}
+                            className="px-6 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 shadow-md flex items-center gap-2">
+                            <Save size={16} /> Gửi đơn
+                        </button>
+                    </div>
+                </div>
                 )}
 
                 {requestType === 'purchase' && (
