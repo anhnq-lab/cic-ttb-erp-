@@ -468,7 +468,11 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Công việc / Task</label>
-                                <select className="w-full p-2 border rounded-lg text-sm bg-white">
+                                <select
+                                    className="w-full p-2 border rounded-lg text-sm bg-white"
+                                    value={selectedTaskId}
+                                    onChange={(e) => setSelectedTaskId(e.target.value)}
+                                >
                                     <option value="">-- Chọn công việc --</option>
                                     {filteredTasks.map((t: any) => (
                                         <option key={t.id} value={t.id}>{t.name}</option>
@@ -480,26 +484,46 @@ const RequestTab = ({ myTasks }: { myTasks: any[] }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ngày</label>
-                                <input type="date" className="w-full p-2 border rounded-lg text-sm" defaultValue={new Date().toISOString().split('T')[0]} />
+                                <input
+                                    type="date"
+                                    className="w-full p-2 border rounded-lg text-sm"
+                                    value={logDate}
+                                    onChange={(e) => setLogDate(e.target.value)}
+                                />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số giờ</label>
-                                <input type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="VD: 8" defaultValue={timesheetType === 'normal' ? 8 : 2} />
+                                <input
+                                    type="number"
+                                    className="w-full p-2 border rounded-lg text-sm"
+                                    placeholder="VD: 8"
+                                    value={logHours}
+                                    onChange={(e) => setLogHours(e.target.value)}
+                                />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Loại hình</label>
-                                <select className="w-full p-2 border rounded-lg text-sm bg-white">
-                                    <option>Dựng hình / Modeling</option>
-                                    <option>Họp / Meeting</option>
-                                    <option>Kiểm soát / Review</option>
-                                    <option>Khác</option>
+                                <select
+                                    className="w-full p-2 border rounded-lg text-sm bg-white"
+                                    value={logWorkType}
+                                    onChange={(e) => setLogWorkType(e.target.value)}
+                                >
+                                    <option value="Modeling">Dựng hình / Modeling</option>
+                                    <option value="Meeting">Họp / Meeting</option>
+                                    <option value="Review">Kiểm soát / Review</option>
+                                    <option value="Other">Khác</option>
                                 </select>
                             </div>
                         </div>
 
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mô tả công việc</label>
-                            <textarea className="w-full p-2 border rounded-lg text-sm h-24" placeholder="Mô tả chi tiết công việc đã làm..."></textarea>
+                            <textarea
+                                className="w-full p-2 border rounded-lg text-sm h-24"
+                                placeholder="Mô tả chi tiết công việc đã làm..."
+                                value={logDesc}
+                                onChange={(e) => setLogDesc(e.target.value)}
+                            ></textarea>
                         </div>
 
                         <div className="pt-2 flex justify-end">
