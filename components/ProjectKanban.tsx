@@ -82,24 +82,24 @@ const KanbanCard: React.FC<{ task: Task, onMove: (id: string, newStatus: TaskSta
 };
 
 const KanbanColumn: React.FC<{ title: string, status: string, tasks?: Task[], count: number, onMove: (id: string, s: TaskStatus) => void, onEdit: (task: Task) => void }> = ({ title, status, tasks = [], count, onMove, onEdit }) => (
-    <div className="flex-shrink-0 w-80 flex flex-col h-full bg-gray-50/50 rounded-xl border border-gray-200/60">
-        <div className="p-3 flex items-center justify-between border-b border-gray-100 bg-gray-50 rounded-t-xl">
-            <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full 
+    <div className="flex-1 min-w-[200px] flex flex-col h-full bg-gray-50/50 rounded-xl border border-gray-200/60 transition-all duration-300">
+        <div className="p-2 flex items-center justify-between border-b border-gray-100 bg-gray-50 rounded-t-xl">
+            <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full 
                     ${status.includes('S0') ? 'bg-blue-500' :
                         status.includes('S6') ? 'bg-emerald-500' :
                             status.includes('S4') ? 'bg-amber-500' : 'bg-slate-400'}`}>
                 </div>
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">{title}</h3>
+                <h3 className="text-[10px] uppercase font-bold text-slate-700 tracking-wide truncate max-w-[120px]" title={title}>{title}</h3>
             </div>
-            <span className="text-xs font-bold text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-200 shadow-sm">{count}</span>
+            <span className="text-[10px] font-bold text-gray-400 bg-white px-1.5 py-0.5 rounded-full border border-gray-200 shadow-sm">{count}</span>
         </div>
-        <div className="flex-1 p-2 overflow-y-auto custom-scrollbar space-y-2">
+        <div className="flex-1 p-1.5 overflow-y-auto custom-scrollbar space-y-2">
             {tasks && tasks.length > 0 ? (
                 tasks.map(task => <KanbanCard key={task.id} task={task} onMove={onMove} onEdit={onEdit} />)
             ) : (
-                <div className="h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-400">
-                    Không có công việc
+                <div className="h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-[10px] text-gray-400">
+                    Trống
                 </div>
             )}
         </div>
@@ -126,7 +126,7 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ tasks, onMoveTask, onEdit
     };
 
     return (
-        <div className="flex overflow-x-auto gap-4 pb-4 h-[calc(100vh-400px)] min-h-[500px] custom-scrollbar">
+        <div className="flex gap-2 pb-2 h-[calc(100vh-400px)] min-h-[500px] w-full overflow-x-auto custom-scrollbar">
             <KanbanColumn title="Chưa thực hiện" status={TaskStatus.OPEN} tasks={tasksByStatus[TaskStatus.OPEN]} count={tasksByStatus[TaskStatus.OPEN]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S0 - Đang triển khai" status={TaskStatus.S0} tasks={tasksByStatus[TaskStatus.S0]} count={tasksByStatus[TaskStatus.S0]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
             <KanbanColumn title="S1 - Phối hợp bộ môn" status={TaskStatus.S1} tasks={tasksByStatus[TaskStatus.S1]} count={tasksByStatus[TaskStatus.S1]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
