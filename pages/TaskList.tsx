@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { ProjectService } from '../services/project.service';
+import TaskService from '../services/task.service';
 import { Task, TaskStatus, TaskPriority } from '../types';
 import {
     Search, Filter, Calendar, Kanban, List, BarChart2,
-    ChevronDown, MessageSquare, Paperclip, Clock, AlertCircle, CheckCircle2
+    ChevronDown, MessageSquare, Paperclip, Clock, AlertCircle, CheckCircle2, Plus
 } from 'lucide-react';
+import TaskDetailModal from '../components/TaskDetailModal';
+import AddTaskModal from '../components/AddTaskModal';
 
 const TaskList = () => {
-    const [tasks, setTasks] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'gantt'>('list');
     const [searchTerm, setSearchTerm] = useState('');
@@ -17,6 +19,8 @@ const TaskList = () => {
         priority: 'All',
         project: 'All'
     });
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         fetchTasks();
@@ -24,9 +28,14 @@ const TaskList = () => {
 
     const fetchTasks = async () => {
         setLoading(true);
-        const data = await ProjectService.getAllTasks();
-        setTasks(data);
-        setLoading(false);
+        try {
+            const data = await TaskService.getAllTasks();
+            setTasks(data);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Filter Tasks
@@ -79,6 +88,12 @@ const TaskList = () => {
                         Tổng quan công việc từ tất cả các dự án
                     </p>
                 </div>
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2 shadow-lg"
+                >
+                    <Plus size={18} /> New Task
+                </button>
                 <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                     <button
                         onClick={() => setViewMode('list')}
@@ -202,7 +217,11 @@ const TaskList = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {filteredTasks.map((task) => (
-                                            <tr key={task.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <tr
+                                                key={task.id}
+                                                onClick={() => setSelectedTask(task)}
+                                                className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                            >
                                                 <td className="p-4">
                                                     <div>
                                                         <p className="font-medium text-slate-900 line-clamp-1">{task.name}</p>
@@ -211,19 +230,11 @@ const TaskList = () => {
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm text-indigo-600 font-medium truncate max-w-[150px]">{task.projectCode}</span>
-                                                        <span className="text-xs text-slate-500 truncate max-w-[200px]">{task.projectName}</span>
+                                                        <span className="text-sm text-indigo-600 font-medium truncate max-w-[150px]">{task.project_id}</span>
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="flex items-center gap-2">
-                                                        {task.assignee?.avatar ? (
-                                                            <img src={task.assignee.avatar} alt={task.assignee.name} className="w-6 h-6 rounded-full" />
-                                                        ) : (
-                                                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs">?</div>
-                                                        )}
-                                                        <span className="text-sm text-slate-700">{task.assignee?.name || 'Chưa gán'}</span>
-                                                    </div>
+                                                    <span className="text-sm text-slate-700">{task.assignee_name || 'Chưa gán'}</span>
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
@@ -238,7 +249,7 @@ const TaskList = () => {
                                                 <td className="p-4">
                                                     <div className="flex items-center text-slate-600 text-sm">
                                                         <Calendar size={14} className="mr-1.5 text-slate-400" />
-                                                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : '-'}
+                                                        {task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN') : '-'}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -269,7 +280,11 @@ const TaskList = () => {
                                                     return t.status === status;
                                                 })
                                                 .map(task => (
-                                                    <div key={task.id} className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer group">
+                                                    <div
+                                                        key={task.id}
+                                                        onClick={() => setSelectedTask(task)}
+                                                        className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer group"
+                                                    >
                                                         <div className="flex justify-between items-start mb-2">
                                                             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getPriorityColor(task.priority)}`}>
                                                                 {task.priority}
@@ -277,16 +292,14 @@ const TaskList = () => {
                                                             <span className="text-[10px] text-slate-400 font-mono">{task.code}</span>
                                                         </div>
                                                         <h4 className="font-medium text-slate-800 text-sm mb-1 group-hover:text-indigo-600 transition-colors">{task.name}</h4>
-                                                        <p className="text-xs text-slate-500 mb-2 truncate">{task.projectName}</p>
+                                                        <p className="text-xs text-slate-500 mb-2 truncate">{task.project_id}</p>
 
                                                         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
                                                                 <Calendar size={12} />
-                                                                {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN').slice(0, 5) : '-'}
+                                                                {task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN').slice(0, 5) : '-'}
                                                             </div>
-                                                            {task.assignee?.avatar && (
-                                                                <img src={task.assignee.avatar} alt="Assignee" className="w-5 h-5 rounded-full ring-1 ring-white" />
-                                                            )}
+                                                            <span className="text-xs text-slate-600">{task.assignee_name || '?'}</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -306,6 +319,29 @@ const TaskList = () => {
                     </>
                 )}
             </div>
+
+            {/* Modals */}
+            {selectedTask && (
+                <TaskDetailModal
+                    task={selectedTask}
+                    isOpen={!!selectedTask}
+                    onClose={() => setSelectedTask(null)}
+                    onUpdate={() => {
+                        fetchTasks();
+                        setSelectedTask(null);
+                    }}
+                />
+            )}
+
+            <AddTaskModal
+                projectId="proj-demo-001"
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    fetchTasks();
+                    setShowAddModal(false);
+                }}
+            />
         </div>
     );
 };
