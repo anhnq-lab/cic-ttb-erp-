@@ -1,117 +1,90 @@
 -- ============================================
--- Task Management SEED DATA (FIXED)
--- Auto-creates projects if they don't exist
+-- Task Management SEED DATA (SIMPLIFIED)
+-- Works without FK dependencies
 -- ============================================
 
--- Create projects first if they don't exist
+-- Note: This version sets assignee_id and assignee_name to NULL
+-- You can update them later via UI to assign real employees
+
+-- Create projects if they don't exist
 INSERT INTO public.projects (id, code, name, client, location, manager, capital_source, status, progress, budget, spent, deadline, members_count, thumbnail)
 VALUES 
-    ('proj-001', '25001', 'BIM LOD400 - Tòa nhà VP Vincom Metropolis', 'Vingroup', 'Hà Nội', 'Trần Thị Bình', 'NonStateBudget', 'Đang thực hiện', 75, 2500000000, 1800000000, 'Q2/2025', 8, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab'),
-    ('proj-002', '25002', 'Digital Twin - Khu đô thị Ecopark', 'Ecopark', 'Hưng Yên', 'Lê Minh Châu', 'NonStateBudget', 'Đang thực hiện', 45, 3800000000, 1600000000, 'Q4/2025', 12, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00')
-ON CONFLICT (id) DO NOTHING;  -- Skip if already exists
-
--- Create employees if they don't exist
-INSERT INTO public.employees (id, code, name, email, role, department, status)
-VALUES
-    ('emp-002', 'NV002', 'Trần Thị Bình', 'binh@cic.vn', 'Trưởng phòng QLDA', 'Phòng QLDA', 'Chính thức'),
-    ('emp-003', 'NV003', 'Lê Minh Châu', 'chau@cic.vn', 'BIM Manager', 'Phòng BIM', 'Chính thức'),
-    ('emp-004', 'NV004', 'Phạm Văn Dũng', 'dung@cic.vn', 'BIM Coordinator', 'Phòng BIM', 'Chính thức'),
-    ('emp-005', 'NV005', 'Hoàng Thị Em', 'em@cic.vn', 'Kỹ sư BIM', 'Phòng BIM', 'Thử việc')
-ON CONFLICT (code) DO NOTHING;  -- Skip if code already exists
-
--- ============================================
--- SAMPLE TASKS for Project: BIM LOD400 - Vincom Metropolis
--- ============================================
-
-INSERT INTO public.tasks (id, project_id, code, name, assignee_id, assignee_name, status, priority, start_date, due_date, progress, estimated_hours, description, created_at) VALUES
--- Phase 1: Khởi tạo dự án
-('task-001', 'proj-001', '1.1', 'Kick-off meeting và phân công nhiệm vụ', 'emp-002', 'Trần Thị Bình', 'Hoàn thành', 'Cao', '2025-01-02', '2025-01-02', 100, 4.0, 'Họp kick-off, phân công role, setup môi trường làm việc', '2025-01-02 08:00:00+07'),
-('task-002', 'proj-001', '1.2', 'Thu thập và rà soát bản vẽ thiết kế', 'emp-003', 'Lê Minh Châu', 'Hoàn thành', 'Cao', '2025-01-03', '2025-01-05', 100, 16.0, 'Nhận bản vẽ kiến trúc, kết cấu, MEP. Rà soát và list các vấn đề cần làm rõ', '2025-01-03 09:00:00+07'),
-('task-003', 'proj-001', '1.3', 'Setup BIM Execution Plan (BEP)', 'emp-002', 'Trần Thị Bình', 'S5 Đã duyệt', 'Cao', '2025-01-06', '2025-01-08', 95, 12.0, 'Lập BEP, quy định về LOD, file naming, coordinate system, clash tolerance', '2025-01-06 08:30:00+07'),
-
--- Phase 2: Modeling (Đang thực hiện)
-('task-004', 'proj-001', '2.1', 'Dựng model kiến trúc LOD 300 - Tầng hầm', 'emp-004', 'Phạm Văn Dũng', 'S2 Kiểm tra chéo', 'Cao', '2025-01-09', '2025-01-15', 75, 40.0, 'Dựng model kiến trúc 2 tầng hầm: cột, dầm, sàn, tường, cửa. Theo bản vẽ A-B01, A-B02', '2025-01-09 08:00:00+07'),
-('task-005', 'proj-001', '2.2', 'Dựng model kiến trúc LOD 300 - Tầng 1-5', 'emp-005', 'Hoàng Thị Em', 'S1 Phối hợp', 'Cao', '2025-01-10', '2025-01-20', 45, 80.0, 'Dựng model kiến trúc tầng 1-5: layout, tường, cửa sổ, cửa đi, ban công. Theo bản vẽ A-01 đến A-05', '2025-01-10 08:00:00+07'),
-('task-006', 'proj-001', '2.3', 'Dựng model kết cấu LOD 300 - Móng và tầng hầm', 'emp-004', 'Phạm Văn Dũng', 'S0 Đang thực hiện', 'Trung bình', '2025-01-16', '2025-01-25', 30, 60.0, 'Dựng model kết cấu móng, cọc, dầm móng, cột, dầm, sàn tầng hầm. Theo bản vẽ S-B01, S-B02', '2025-01-16 08:00:00+07'),
-('task-007', 'proj-001', '2.4', 'Dựng model MEP - Hệ thống điện', 'emp-005', 'Hoàng Thị Em', 'Mở', 'Trung bình', '2025-01-20', '2025-02-05', 0, 100.0, 'Dựng model hệ thống điện: tủ điện, đường ống, cáp, thiết bị chiếu sáng, ổ cắm', '2025-01-20 08:00:00+07'),
-
--- Phase 3: Review & Coordination
-('task-008', 'proj-001', '3.1', 'Clash Detection tầng hầm', 'emp-003', 'Lê Minh Châu', 'S1 Phối hợp', 'Cao', '2025-01-16', '2025-01-18', 60, 16.0, 'Chạy clash detection giữa kiến trúc, kết cấu, MEP tầng hầm. Export clash report', '2025-01-16 09:00:00+07'),
-('task-009', 'proj-001', '3.2', 'Họp phối hợp giải quyết clash', 'emp-002', 'Trần Thị Bình', 'Đang chờ', 'Cao', '2025-01-19', '2025-01-19', 0, 4.0, 'Họp với các bên để giải quyết các clash phát hiện được. Ghi chú biên bản', '2025-01-19 14:00:00+07'),
-('task-010', 'proj-001', '3.3', 'Cập nhật model sau phối hợp', 'emp-004', 'Phạm Văn Dũng', 'Mở', 'Trung bình', '2025-01-20', '2025-01-22', 0, 20.0, 'Cập nhật model theo kết quả họp phối hợp. Sửa các vị trí clash', '2025-01-20 08:00:00+07'),
-
--- Phase 4: Documentation
-('task-011', 'proj-001', '4.1', 'Xuất bản vẽ 2D từ model', 'emp-005', 'Hoàng Thị Em', 'Mở', 'Thấp', '2025-01-23', '2025-01-25', 0, 16.0, 'Xuất bản vẽ mặt bằng, mặt đứng, mặt cắt từ model Revit', '2025-01-23 08:00:00+07'),
-('task-012', 'proj-001', '4.2', 'Lập Schedule và BOQ', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-01-28', 0, 20.0, 'Lập schedule vật liệu, BOQ chi tiết theo từng hạng mục', '2025-01-26 08:00:00+07')
+    ('proj-demo-001', 'DEMO-001', 'BIM LOD400 - Vincom Metropolis Demo', 'Vingroup', 'Hà Nội', 'PM Demo', 'NonStateBudget', 'Đang thực hiện', 75, 2500000000, 1800000000, '2025-06-30', 8, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab'),
+    ('proj-demo-002', 'DEMO-002', 'Digital Twin - Ecopark Demo', 'Ecopark', 'Hưng Yên', 'PM Demo', 'NonStateBudget', 'Đang thực hiện', 45, 3800000000, 1600000000, '2025-12-31', 12, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- SAMPLE TASKS for Project: Digital Twin - Ecopark
+-- SAMPLE TASKS - No FK dependencies
 -- ============================================
 
-INSERT INTO public.tasks (id, project_id, code, name, assignee_id, assignee_name, status, priority, start_date, due_date, progress, estimated_hours, description, created_at) VALUES
-('task-013', 'proj-002', '1.1', '3D Laser Scanning toàn khu đô thị', 'emp-003', 'Lê Minh Châu', 'S4 Lãnh đạo duyệt', 'Cao', '2024-12-15', '2024-12-20', 100, 60.0, 'Quét 3D laser toàn bộ khu đô thị hiện trạng. Point cloud density: 5mm', '2024-12-15 08:00:00+07'),
-('task-014', 'proj-002', '1.2', 'Xử lý point cloud và tạo mesh', 'emp-004', 'Phạm Văn Dũng', 'S3 Duyệt nội bộ', 'Cao', '2024-12-21', '2025-01-05', 90, 80.0, 'Import point cloud vào ReCap, làm sạch, tạo mesh 3D cho các tòa nhà', '2024-12-21 08:00:00+07'),
-('task-015', 'proj-002', '2.1', 'Scan to BIM - Tòa A1', 'emp-005', 'Hoàng Thị Em', 'S1 Phối hợp', 'Cao', '2025-01-06', '2025-01-20', 50, 100.0, 'Dựng model Revit LOD 350 từ point cloud cho Tòa A1 (20 tầng)', '2025-01-06 08:00:00+07'),
-('task-016', 'proj-002', '2.2', 'Scan to BIM - Tòa A2', 'emp-004', 'Phạm Văn Dũng', 'Mở', 'Trung bình', '2025-01-21', '2025-02-10', 0, 100.0, 'Dựng model Revit LOD 350 từ point cloud cho Tòa A2 (18 tầng)', '2025-01-21 08:00:00+07'),
-('task-017', 'proj-002', '3.1', 'Setup Unity Digital Twin platform', 'emp-003', 'Lê Minh Châu', 'S0 Đang thực hiện', 'Cao', '2025-01-10', '2025-01-25', 35, 60.0, 'Setup Unity project, import models, setup camera, lighting, navigation', '2025-01-10 08:00:00+07'),
-('task-018', 'proj-002', '3.2', 'Tích hợp IoT sensors data', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-02-15', 0, 80.0, 'Connect IoT sensors (nhiệt độ, độ ẩm, năng lượng) vào Digital Twin', '2025-01-26 08:00:00+07')
+INSERT INTO public.tasks (id, project_id, code, name, assignee_name, status, priority, start_date, due_date, progress, estimated_hours, description) VALUES
+-- PROJECT 1: BIM LOD400
+('task-demo-001', 'proj-demo-001', '1.1', 'Kick-off meeting và phân công', 'Trần Thị Bình', 'Hoàn thành', 'Cao', '2025-01-02', '2025-01-02', 100, 4.0, 'Họp kick-off, phân công role, setup môi trường'),
+('task-demo-002', 'proj-demo-001', '1.2', 'Thu thập bản vẽ thiết kế', 'Lê Minh Châu', 'Hoàn thành', 'Cao', '2025-01-03', '2025-01-05', 100, 16.0, 'Nhận bản vẽ kiến trúc, kết cấu, MEP'),
+('task-demo-003', 'proj-demo-001', '1.3', 'Setup BIM Execution Plan', 'Trần Thị Bình', 'S5 Đã duyệt', 'Cao', '2025-01-06', '2025-01-08', 95, 12.0, 'Lập BEP, LOD requirements'),
+('task-demo-004', 'proj-demo-001', '2.1', 'Dựng model KT LOD 300 - Tầng hầm', 'Phạm Văn Dũng', 'S2 Kiểm tra chéo', 'Cao', '2025-01-09', '2025-01-15', 75, 40.0, 'Model 2 tầng hầm: cột, dầm, sàn, tường'),
+('task-demo-005', 'proj-demo-001', '2.2', 'Dựng model KT LOD 300 - Tầng 1-5', 'Hoàng Thị Em', 'S1 Phối hợp', 'Cao', '2025-01-10', '2025-01-20', 45, 80.0, 'Model tầng 1-5: layout, tường, cửa'),
+('task-demo-006', 'proj-demo-001', '2.3', 'Dựng model kết cấu - Móng', 'Phạm Văn Dũng', 'S0 Đang thực hiện', 'Trung bình', '2025-01-16', '2025-01-25', 30, 60.0, 'Model móng, cọc, dầm móng'),
+('task-demo-007', 'proj-demo-001', '2.4', 'Dựng model MEP - Điện', 'Hoàng Thị Em', 'Mở', 'Trung bình', '2025-01-20', '2025-02-05', 0, 100.0, 'Hệ thống điện, tủ, cáp'),
+('task-demo-008', 'proj-demo-001', '3.1', 'Clash Detection tầng hầm', 'Lê Minh Châu', 'S1 Phối hợp', 'Cao', '2025-01-16', '2025-01-18', 60, 16.0, 'Chạy clash detection'),
+('task-demo-009', 'proj-demo-001', '3.2', 'Họp phối hợp clash', 'Trần Thị Bình', 'Đang chờ', 'Cao', '2025-01-19', '2025-01-19', 0, 4.0, 'Họp giải quyết clash'),
+('task-demo-010', 'proj-demo-001', '3.3', 'Cập nhật model sau phối hợp', 'Phạm Văn Dũng', 'Mở', 'Trung bình', '2025-01-20', '2025-01-22', 0, 20.0, 'Sửa các vị trí clash'),
+('task-demo-011', 'proj-demo-001', '4.1', 'Xuất bản vẽ 2D', 'Hoàng Thị Em', 'Mở', 'Thấp', '2025-01-23', '2025-01-25', 0, 16.0, 'Xuất mặt bằng, mặt đứng'),
+('task-demo-012', 'proj-demo-001', '4.2', 'Lập Schedule BOQ', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-01-28', 0, 20.0, 'Schedule vật liệu, BOQ'),
+
+-- PROJECT 2: Digital Twin
+('task-demo-013', 'proj-demo-002', '1.1', '3D Laser Scanning', 'Lê Minh Châu', 'S4 Lãnh đạo duyệt', 'Cao', '2024-12-15', '2024-12-20', 100, 60.0, 'Quét 3D laser khu đô thị'),
+('task-demo-014', 'proj-demo-002', '1.2', 'Xử lý point cloud', 'Phạm Văn Dũng', 'S3 Duyệt nội bộ', 'Cao', '2024-12-21', '2025-01-05', 90, 80.0, 'Import ReCap, làm sạch, mesh'),
+('task-demo-015', 'proj-demo-002', '2.1', 'Scan to BIM - Tòa A1', 'Hoàng Thị Em', 'S1 Phối hợp', 'Cao', '2025-01-06', '2025-01-20', 50, 100.0, 'Model Revit LOD 350 từ point cloud'),
+('task-demo-016', 'proj-demo-002', '2.2', 'Scan to BIM - Tòa A2', 'Phạm Văn Dũng', 'Mở', 'Trung bình', '2025-01-21', '2025-02-10', 0, 100.0, 'Model Tòa A2'),
+('task-demo-017', 'proj-demo-002', '3.1', 'Setup Unity Digital Twin', 'Lê Minh Châu', 'S0 Đang thực hiện', 'Cao', '2025-01-10', '2025-01-25', 35, 60.0, 'Setup Unity project'),
+('task-demo-018', 'proj-demo-002', '3.2', 'Tích hợp IoT sensors', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-02-15', 0, 80.0, 'Connect IoT sensors')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- TASK HISTORY - Auto-logged changes
+-- TASK HISTORY (Không cần employee FK)
 -- ============================================
 
-INSERT INTO public.task_history (id, task_id, field_name, old_value, new_value, changed_by, changed_at, notes) VALUES
--- Task 004 history
-('hist-001', 'task-004', 'status', 'Mở', 'S0 Đang thực hiện', 'emp-004', '2025-01-09 08:30:00+07', 'Bắt đầu làm việc'),
-('hist-002', 'task-004', 'progress', '0', '25', 'emp-004', '2025-01-10 17:00:00+07', 'Hoàn thành model tầng B2'),
-('hist-003', 'task-004', 'status', 'S0 Đang thực hiện', 'S1 Phối hợp', 'emp-004', '2025-01-11 16:00:00+07', 'Gửi coordinator review'),
-('hist-004', 'task-004', 'progress', '25', '50', 'emp-004', '2025-01-12 17:00:00+07', 'Hoàn thành model tầng B1'),
-('hist-005', 'task-004', 'status', 'S1 Phối hợp', 'S2 Kiểm tra chéo', 'emp-003', '2025-01-13 10:00:00+07', 'Coordinator approve, chuyển QA/QC'),
-('hist-006', 'task-004', 'progress', '50', '75', 'emp-004', '2025-01-14 17:00:00+07', 'Fix theo góp ý QA/QC'),
-
--- Task 005 history
-('hist-007', 'task-005', 'status', 'Mở', 'S0 Đang thực hiện', 'emp-005', '2025-01-10 08:30:00+07', 'Bắt đầu tầng 1'),
-('hist-008', 'task-005', 'progress', '0', '15', 'emp-005', '2025-01-11 17:00:00+07', 'Hoàn thành layout tầng 1'),
-('hist-009', 'task-005', 'progress', '15', '30', 'emp-005', '2025-01-13 17:00:00+07', 'Hoàn thành tường, cửa tầng 1-2'),
-('hist-010', 'task-005', 'status', 'S0 Đang thực hiện', 'S1 Phối hợp', 'emp-005', '2025-01-14 16:00:00+07', 'Gửi review tầng 1-2'),
-('hist-011', 'task-005', 'progress', '30', '45', 'emp-005', '2025-01-15 17:00:00+07', 'Tiếp tục tầng 3')
+INSERT INTO public.task_history (id, task_id, field_name, old_value, new_value, changed_at, notes) VALUES
+('hist-demo-001', 'task-demo-004', 'status', 'Mở', 'S0 Đang thực hiện', '2025-01-09 08:30:00+07', 'Bắt đầu'),
+('hist-demo-002', 'task-demo-004', 'progress', '0', '25', '2025-01-10 17:00:00+07', 'Hoàn thành B2'),
+('hist-demo-003', 'task-demo-004', 'status', 'S0 Đang thực hiện', 'S1 Phối hợp', '2025-01-11 16:00:00+07', 'Gửi review'),
+('hist-demo-004', 'task-demo-004', 'progress', '25', '50', '2025-01-12 17:00:00+07', 'Hoàn thành B1'),
+('hist-demo-005', 'task-demo-004', 'status', 'S1 Phối hợp', 'S2 Kiểm tra chéo', '2025-01-13 10:00:00+07', 'QA/QC'),
+('hist-demo-006', 'task-demo-004', 'progress', '50', '75', '2025-01-14 17:00:00+07', 'Fix QA'),
+('hist-demo-007', 'task-demo-005', 'status', 'Mở', 'S0 Đang thực hiện', '2025-01-10 08:30:00+07', 'Bắt đầu'),
+('hist-demo-008', 'task-demo-005', 'progress', '0', '15', '2025-01-11 17:00:00+07', 'Layout T1'),
+('hist-demo-009', 'task-demo-005', 'progress', '15', '30', '2025-01-13 17:00:00+07', 'Tường T1-2'),
+('hist-demo-010', 'task-demo-005', 'status', 'S0 Đang thực hiện', 'S1 Phối hợp', '2025-01-14 16:00:00+07', 'Review'),
+('hist-demo-011', 'task-demo-005', 'progress', '30', '45', '2025-01-15 17:00:00+07', 'T3')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- TIMESHEET LOGS - Linked to tasks
+-- TIMESHEET LOGS (Không có employee_id FK)
 -- ============================================
 
-INSERT INTO public.timesheet_logs (id, project_id, employee_id, task_id, date, hours, work_type, description, status) VALUES
--- Task 004 timesheets
-('ts-001', 'proj-001', 'emp-004', 'task-004', '2025-01-09', 8.0, 'Modeling', 'Dựng model tầng B2: cột, dầm', 'Approved'),
-('ts-002', 'proj-001', 'emp-004', 'task-004', '2025-01-10', 8.0, 'Modeling', 'Tiếp tục model tầng B2: sàn, tường', 'Approved'),
-('ts-003', 'proj-001', 'emp-004', 'task-004', '2025-01-11', 6.0, 'Modeling', 'Hoàn thiện tầng B2, bắt đầu B1', 'Approved'),
-('ts-004', 'proj-001', 'emp-004', 'task-004', '2025-01-12', 8.0, 'Modeling', 'Model tầng B1', 'Approved'),
-('ts-005', 'proj-001', 'emp-004', 'task-004', '2025-01-13', 4.0, 'Modeling', 'Hoàn thiện tầng B1', 'Approved'),
-('ts-006', 'proj-001', 'emp-004', 'task-004', '2025-01-14', 6.0, 'Review', 'Fix theo góp ý QA/QC', 'Pending'),
-
--- Task 005 timesheets
-('ts-007', 'proj-001', 'emp-005', 'task-005', '2025-01-10', 8.0, 'Modeling', 'Layout tầng 1', 'Approved'),
-('ts-008', 'proj-001', 'emp-005', 'task-005', '2025-01-11', 8.0, 'Modeling', 'Hoàn thiện layout, bắt đầu tường', 'Approved'),
-('ts-009', 'proj-001', 'emp-005', 'task-005', '2025-01-13', 8.0, 'Modeling', 'Tường, cửa tầng 1-2', 'Approved'),
-('ts-010', 'proj-001', 'emp-005', 'task-005', '2025-01-14', 6.0, 'Modeling', 'Cửa sổ, ban công tầng 2', 'Approved'),
-('ts-011', 'proj-001', 'emp-005', 'task-005', '2025-01-15', 8.0, 'Modeling', 'Bắt đầu tầng 3', 'Pending'),
-
--- Task 006 timesheets
-('ts-012', 'proj-001', 'emp-004', 'task-006', '2025-01-16', 8.0, 'Modeling', 'Bắt đầu model móng', 'Pending'),
-('ts-013', 'proj-001', 'emp-004', 'task-006', '2025-01-17', 8.0, 'Modeling', 'Model cọc, dầm móng', 'Pending'),
-
--- Task 008 timesheets
-('ts-014', 'proj-001', 'emp-003', 'task-008', '2025-01-16', 4.0, 'Coordination', 'Setup Navisworks, import models', 'Approved'),
-('ts-015', 'proj-001', 'emp-003', 'task-008', '2025-01-17', 6.0, 'Coordination', 'Run clash detection, phân loại clash', 'Pending')
+INSERT INTO public.timesheet_logs (id, project_id, task_id, date, hours, work_type, description, status) VALUES
+('ts-demo-001', 'proj-demo-001', 'task-demo-004', '2025-01-09', 8.0, 'Modeling', 'Model B2: cột, dầm', 'Approved'),
+('ts-demo-002', 'proj-demo-001', 'task-demo-004', '2025-01-10', 8.0, 'Modeling', 'Model B2: sàn, tường', 'Approved'),
+('ts-demo-003', 'proj-demo-001', 'task-demo-004', '2025-01-11', 6.0, 'Modeling', 'Hoàn thiện B2', 'Approved'),
+('ts-demo-004', 'proj-demo-001', 'task-demo-004', '2025-01-12', 8.0, 'Modeling', 'Model B1', 'Approved'),
+('ts-demo-005', 'proj-demo-001', 'task-demo-004', '2025-01-13', 4.0, 'Modeling', 'Hoàn thiện B1', 'Approved'),
+('ts-demo-006', 'proj-demo-001', 'task-demo-004', '2025-01-14', 6.0, 'Review', 'Fix QA/QC', 'Pending'),
+('ts-demo-007', 'proj-demo-001', 'task-demo-005', '2025-01-10', 8.0, 'Modeling', 'Layout T1', 'Approved'),
+('ts-demo-008', 'proj-demo-001', 'task-demo-005', '2025-01-11', 8.0, 'Modeling', 'Tường', 'Approved'),
+('ts-demo-009', 'proj-demo-001', 'task-demo-005', '2025-01-13', 8.0, 'Modeling', 'Tường T1-2', 'Approved'),
+('ts-demo-010', 'proj-demo-001', 'task-demo-005', '2025-01-14', 6.0, 'Modeling', 'Cửa sổ T2', 'Approved'),
+('ts-demo-011', 'proj-demo-001', 'task-demo-005', '2025-01-15', 8.0, 'Modeling', 'T3', 'Pending'),
+('ts-demo-012', 'proj-demo-001', 'task-demo-006', '2025-01-16', 8.0, 'Modeling', 'Model móng', 'Pending'),
+('ts-demo-013', 'proj-demo-001', 'task-demo-006', '2025-01-17', 8.0, 'Modeling', 'Cọc, dầm móng', 'Pending'),
+('ts-demo-014', 'proj-demo-001', 'task-demo-008', '2025-01-16', 4.0, 'Coordination', 'Setup Navisworks', 'Approved'),
+('ts-demo-015', 'proj-demo-001', 'task-demo-008', '2025-01-17', 6.0, 'Coordination', 'Clash detection', 'Pending')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- SUCCESS MESSAGE
+-- SUCCESS
 -- ============================================
-SELECT 'Task Management Seed Data Created! ✅' as message;
-SELECT COUNT(*) || ' tasks created' as info FROM public.tasks WHERE id LIKE 'task-%';
-SELECT COUNT(*) || ' history entries created' as info2 FROM public.task_history WHERE id LIKE 'hist-%';
-SELECT COUNT(*) || ' timesheet logs created' as info3 FROM public.timesheet_logs WHERE id LIKE 'ts-%';
+SELECT '✅ Demo Data Created!' as message;
+SELECT COUNT(*) || ' tasks' as tasks FROM public.tasks WHERE id LIKE 'task-demo-%';
+SELECT COUNT(*) || ' history entries' as history FROM public.task_history WHERE id LIKE 'hist-demo-%';
+SELECT COUNT(*) || ' timesheet logs' as timesheets FROM public.timesheet_logs WHERE id LIKE 'ts-demo-%';
