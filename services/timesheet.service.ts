@@ -70,5 +70,105 @@ export const TimesheetService = {
         return MOCK_TIMESHEETS
             .filter(t => t.employeeId === employeeId && t.date === date)
             .reduce((sum, t) => sum + t.hours, 0);
+    },
+
+    // NEW: Get all timesheets with advanced filters
+    getAllTimesheets: async (filters?: {
+        employeeId?: string;
+        projectId?: string;
+        startDate?: string;
+        endDate?: string;
+        status?: string;
+        taskId?: string;
+        workType?: string;
+    }): Promise<TimesheetLog[]> => {
+        let filtered = [...MOCK_TIMESHEETS];
+
+        if (filters) {
+            if (filters.employeeId) {
+                filtered = filtered.filter(t => t.employeeId === filters.employeeId);
+            }
+            if (filters.projectId) {
+                filtered = filtered.filter(t => t.projectId === filters.projectId);
+            }
+            if (filters.startDate) {
+                filtered = filtered.filter(t => t.date >= filters.startDate!);
+            }
+            if (filters.endDate) {
+                filtered = filtered.filter(t => t.date <= filters.endDate!);
+            }
+            if (filters.status) {
+                filtered = filtered.filter(t => t.status === filters.status);
+            }
+            if (filters.taskId) {
+                filtered = filtered.filter(t => t.taskId === filters.taskId);
+            }
+            if (filters.workType) {
+                filtered = filtered.filter(t => t.workType === filters.workType);
+            }
+        }
+
+        // Sort by date descending
+        return filtered.sort((a, b) => b.date.localeCompare(a.date));
+    },
+
+    // NEW: Get summary statistics
+    getSummaryStats: async (filters?: any): Promise<{
+        totalHours: number;
+        totalReports: number;
+        byEmployee: Record<string, number>;
+        byProject: Record<string, number>;
+        byStatus: Record<string, number>;
+        byWorkType: Record<string, number>;
+    }> => {
+        const logs = await TimesheetService.getAllTimesheets(filters);
+
+        const stats = {
+            totalHours: 0,
+            totalReports: logs.length,
+            byEmployee: {} as Record<string, number>,
+            byProject: {} as Record<string, number>,
+            byStatus: {} as Record<string, number>,
+            byWorkType: {} as Record<string, number>
+        };
+
+        logs.forEach(log => {
+            stats.totalHours += log.hours;
+            stats.byEmployee[log.employeeId] = (stats.byEmployee[log.employeeId] || 0) + log.hours;
+            stats.byProject[log.projectId] = (stats.byProject[log.projectId] || 0) + log.hours;
+            stats.byStatus[log.status] = (stats.byStatus[log.status] || 0) + 1;
+            if (log.workType) {
+                stats.byWorkType[log.workType] = (stats.byWorkType[log.workType] || 0) + 1;
+            }
+        });
+
+        return stats;
+    },
+
+    // NEW: Export to CSV format
+    exportToCSV: async (filters?: any): Promise<string> => {
+        const logs = await TimesheetService.getAllTimesheets(filters);
+
+        // CSV Header
+        const headers = ['Ngày', 'Nhân viên', 'Dự án', 'Task', 'Giờ làm', 'Loại công việc', 'Mô tả', 'Trạng thái', 'Ngày tạo'];
+        const csvRows = [headers.join(',')];
+
+        // CSV Data
+        logs.forEach(log => {
+            const row = [
+                log.date,
+                log.employeeId,
+                log.projectId,
+                log.taskId || '',
+                log.hours.toString(),
+                log.workType || '',
+                `"${(log.description || '').replace(/"/g, '""')}"`, // Escape quotes in description
+                log.status,
+                log.created_at || ''
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        return csvRows.join('\n');
     }
 };

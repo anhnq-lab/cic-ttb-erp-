@@ -406,7 +406,7 @@ const RequestTab = ({ myTasks, allTasks }: { myTasks: any[], allTasks: any[] }) 
                 workType: logWorkType as any,
                 description: logDesc + (timesheetType === 'ot' ? ' (OT)' : '')
             });
-            alert("Đã lưu chấm công thành công! Dữ liệu đã được cập nhật vào bảng công dự án.");
+            alert("Đã lưu báo cáo ngày thành công! Dữ liệu đã được cập nhật vào bảng công dự án.");
             setLogDesc(''); // Clear description
         } catch (error: any) {
             alert("Lỗi: " + error.message);
@@ -435,7 +435,7 @@ const RequestTab = ({ myTasks, allTasks }: { myTasks: any[], allTasks: any[] }) 
                     onClick={() => setRequestType('timesheet')}
                     className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${requestType === 'timesheet' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                    <Clock size={18} /> Chấm công
+                    <Clock size={18} /> Báo cáo ngày
                 </button>
 
                 <button
@@ -473,7 +473,7 @@ const RequestTab = ({ myTasks, allTasks }: { myTasks: any[], allTasks: any[] }) 
                         <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Clock size={20} /></div>
-                                <h3 className="font-bold text-gray-800">Chấm công & Báo cáo giờ làm</h3>
+                                <h3 className="font-bold text-gray-800">Báo cáo công việc hàng ngày</h3>
                             </div>
                             <div className="flex bg-gray-100 p-1 rounded-lg">
                                 <button
@@ -569,7 +569,7 @@ const RequestTab = ({ myTasks, allTasks }: { myTasks: any[], allTasks: any[] }) 
                             <button
                                 onClick={() => handleSubmit('timesheet')}
                                 className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-md flex items-center gap-2">
-                                <Save size={16} /> Lưu chấm công
+                                <Save size={16} /> Lưu báo cáo
                             </button>
                         </div>
                     </div>

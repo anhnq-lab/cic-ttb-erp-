@@ -360,7 +360,7 @@ const ProjectDetail = () => {
                 { id: 'info', label: 'Thông tin dự án', icon: Info },
                 { id: 'overview', label: 'Tổng quan', icon: Layout },
                 { id: 'plan', label: 'Kế hoạch', icon: Calendar },
-                { id: 'timesheet', label: 'Chấm công', icon: Clock },
+                { id: 'timesheet', label: 'Báo cáo ngày', icon: Clock },
                 { id: 'contracts', label: 'Hợp đồng', icon: ScrollText },
                 { id: 'personnel', label: 'Nhân sự', icon: Users },
                 { id: 'cost', label: 'Chi phí', icon: DollarSign },
