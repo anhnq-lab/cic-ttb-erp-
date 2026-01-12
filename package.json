@@ -1,16 +1,15 @@
 {
-  "homepage": "https://anhnq-lab.github.io/cic-ttb-erp-",
-  "name": "bim-master-pro",
+  "name": "cic-ttb-erp",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:vercel": "vite build --base=/",
     "preview": "vite preview",
+    "type-check": "tsc --noEmit",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy:gh-pages": "gh-pages -d dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
