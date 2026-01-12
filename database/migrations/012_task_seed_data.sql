@@ -1,10 +1,23 @@
 -- ============================================
--- Task Management SEED DATA
--- Realistic examples for BIM project workflow
+-- Task Management SEED DATA (FIXED)
+-- Auto-creates projects if they don't exist
 -- ============================================
 
--- Assumes Migration 001 and 011 have been run
--- Projects and employees should already exist
+-- Create projects first if they don't exist
+INSERT INTO public.projects (id, code, name, client, location, manager, capital_source, status, progress, budget, spent, deadline, members_count, thumbnail)
+VALUES 
+    ('proj-001', '25001', 'BIM LOD400 - Tòa nhà VP Vincom Metropolis', 'Vingroup', 'Hà Nội', 'Trần Thị Bình', 'NonStateBudget', 'Đang thực hiện', 75, 2500000000, 1800000000, 'Q2/2025', 8, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab'),
+    ('proj-002', '25002', 'Digital Twin - Khu đô thị Ecopark', 'Ecopark', 'Hưng Yên', 'Lê Minh Châu', 'NonStateBudget', 'Đang thực hiện', 45, 3800000000, 1600000000, 'Q4/2025', 12, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00')
+ON CONFLICT (id) DO NOTHING;  -- Skip if already exists
+
+-- Create employees if they don't exist
+INSERT INTO public.employees (id, code, name, email, role, department, status)
+VALUES
+    ('emp-002', 'NV002', 'Trần Thị Bình', 'binh@cic.vn', 'Trưởng phòng QLDA', 'Phòng QLDA', 'Chính thức'),
+    ('emp-003', 'NV003', 'Lê Minh Châu', 'chau@cic.vn', 'BIM Manager', 'Phòng BIM', 'Chính thức'),
+    ('emp-004', 'NV004', 'Phạm Văn Dũng', 'dung@cic.vn', 'BIM Coordinator', 'Phòng BIM', 'Chính thức'),
+    ('emp-005', 'NV005', 'Hoàng Thị Em', 'em@cic.vn', 'Kỹ sư BIM', 'Phòng BIM', 'Thử việc')
+ON CONFLICT (code) DO NOTHING;  -- Skip if code already exists
 
 -- ============================================
 -- SAMPLE TASKS for Project: BIM LOD400 - Vincom Metropolis
@@ -29,7 +42,8 @@ INSERT INTO public.tasks (id, project_id, code, name, assignee_id, assignee_name
 
 -- Phase 4: Documentation
 ('task-011', 'proj-001', '4.1', 'Xuất bản vẽ 2D từ model', 'emp-005', 'Hoàng Thị Em', 'Mở', 'Thấp', '2025-01-23', '2025-01-25', 0, 16.0, 'Xuất bản vẽ mặt bằng, mặt đứng, mặt cắt từ model Revit', '2025-01-23 08:00:00+07'),
-('task-012', 'proj-001', '4.2', 'Lập Schedule và BOQ', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-01-28', 0, 20.0, 'Lập schedule vật liệu, BOQ chi tiết theo từng hạng mục', '2025-01-26 08:00:00+07');
+('task-012', 'proj-001', '4.2', 'Lập Schedule và BOQ', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-01-28', 0, 20.0, 'Lập schedule vật liệu, BOQ chi tiết theo từng hạng mục', '2025-01-26 08:00:00+07')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
 -- SAMPLE TASKS for Project: Digital Twin - Ecopark
@@ -41,7 +55,8 @@ INSERT INTO public.tasks (id, project_id, code, name, assignee_id, assignee_name
 ('task-015', 'proj-002', '2.1', 'Scan to BIM - Tòa A1', 'emp-005', 'Hoàng Thị Em', 'S1 Phối hợp', 'Cao', '2025-01-06', '2025-01-20', 50, 100.0, 'Dựng model Revit LOD 350 từ point cloud cho Tòa A1 (20 tầng)', '2025-01-06 08:00:00+07'),
 ('task-016', 'proj-002', '2.2', 'Scan to BIM - Tòa A2', 'emp-004', 'Phạm Văn Dũng', 'Mở', 'Trung bình', '2025-01-21', '2025-02-10', 0, 100.0, 'Dựng model Revit LOD 350 từ point cloud cho Tòa A2 (18 tầng)', '2025-01-21 08:00:00+07'),
 ('task-017', 'proj-002', '3.1', 'Setup Unity Digital Twin platform', 'emp-003', 'Lê Minh Châu', 'S0 Đang thực hiện', 'Cao', '2025-01-10', '2025-01-25', 35, 60.0, 'Setup Unity project, import models, setup camera, lighting, navigation', '2025-01-10 08:00:00+07'),
-('task-018', 'proj-002', '3.2', 'Tích hợp IoT sensors data', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-02-15', 0, 80.0, 'Connect IoT sensors (nhiệt độ, độ ẩm, năng lượng) vào Digital Twin', '2025-01-26 08:00:00+07');
+('task-018', 'proj-002', '3.2', 'Tích hợp IoT sensors data', 'emp-003', 'Lê Minh Châu', 'Mở', 'Trung bình', '2025-01-26', '2025-02-15', 0, 80.0, 'Connect IoT sensors (nhiệt độ, độ ẩm, năng lượng) vào Digital Twin', '2025-01-26 08:00:00+07')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
 -- TASK HISTORY - Auto-logged changes
@@ -61,7 +76,8 @@ INSERT INTO public.task_history (id, task_id, field_name, old_value, new_value, 
 ('hist-008', 'task-005', 'progress', '0', '15', 'emp-005', '2025-01-11 17:00:00+07', 'Hoàn thành layout tầng 1'),
 ('hist-009', 'task-005', 'progress', '15', '30', 'emp-005', '2025-01-13 17:00:00+07', 'Hoàn thành tường, cửa tầng 1-2'),
 ('hist-010', 'task-005', 'status', 'S0 Đang thực hiện', 'S1 Phối hợp', 'emp-005', '2025-01-14 16:00:00+07', 'Gửi review tầng 1-2'),
-('hist-011', 'task-005', 'progress', '30', '45', 'emp-005', '2025-01-15 17:00:00+07', 'Tiếp tục tầng 3');
+('hist-011', 'task-005', 'progress', '30', '45', 'emp-005', '2025-01-15 17:00:00+07', 'Tiếp tục tầng 3')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
 -- TIMESHEET LOGS - Linked to tasks
@@ -89,7 +105,8 @@ INSERT INTO public.timesheet_logs (id, project_id, employee_id, task_id, date, h
 
 -- Task 008 timesheets
 ('ts-014', 'proj-001', 'emp-003', 'task-008', '2025-01-16', 4.0, 'Coordination', 'Setup Navisworks, import models', 'Approved'),
-('ts-015', 'proj-001', 'emp-003', 'task-008', '2025-01-17', 6.0, 'Coordination', 'Run clash detection, phân loại clash', 'Pending');
+('ts-015', 'proj-001', 'emp-003', 'task-008', '2025-01-17', 6.0, 'Coordination', 'Run clash detection, phân loại clash', 'Pending')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
 -- SUCCESS MESSAGE
