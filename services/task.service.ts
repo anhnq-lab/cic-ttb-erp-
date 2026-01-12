@@ -40,22 +40,33 @@ export const TaskService = {
      * Get all tasks with project and employee data
      */
     getAllTasks: async (): Promise<TaskWithRelations[]> => {
-        const { data, error } = await supabase
-            .from('tasks')
-            .select(`
-                *,
-                project:projects!project_id(id, code, name, client),
-                assignee_employee:employees!assignee_id(id, name, avatar, role),
-                reviewer_employee:employees!reviewer_id(id, name, avatar, role)
-            `)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching tasks:', error);
-            throw error;
+        if (!supabase) {
+            console.error('❌ Supabase client is null - environment variables not configured');
+            return [];
         }
 
-        return data as TaskWithRelations[];
+        try {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    project:projects!project_id(id, code, name, client),
+                    assignee_employee:employees!assignee_id(id, name, avatar, role),
+                    reviewer_employee:employees!reviewer_id(id, name, avatar, role)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('❌ Error fetching tasks:', error);
+                throw error;
+            }
+
+            console.log(`✅ Fetched ${data?.length || 0} tasks from Supabase`);
+            return data as TaskWithRelations[];
+        } catch (err) {
+            console.error('❌ Exception in getAllTasks:', err);
+            return [];
+        }
     },
 
     /**

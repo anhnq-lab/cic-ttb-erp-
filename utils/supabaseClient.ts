@@ -28,9 +28,15 @@ export const isSupabaseConfigured = (): boolean => {
 
 // Log configuration status
 if (!hasConfig) {
-    console.warn('⚠️ Supabase not configured. Using mock mode. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env file.');
+    console.warn('⚠️ Supabase not configured. Using mock mode.');
+    console.warn('Missing env vars:');
+    console.warn('  VITE_SUPABASE_URL:', supabaseUrl || 'NOT SET');
+    console.warn('  VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'SET (hidden)' : 'NOT SET');
+    console.warn('Add these to .env file and restart dev server!');
 } else {
     console.log('✅ Supabase configured successfully');
+    console.log('  URL:', supabaseUrl);
+    console.log('  Key:', supabaseAnonKey.substring(0, 20) + '...');
 }
 
 export default supabase;
