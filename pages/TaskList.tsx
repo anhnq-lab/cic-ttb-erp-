@@ -29,10 +29,12 @@ const TaskList = () => {
     const fetchTasks = async () => {
         setLoading(true);
         try {
+            console.log('📡 Fetching tasks from Supabase...');
             const data = await TaskService.getAllTasks();
+            console.log(`✅ Loaded ${data.length} tasks from Supabase:`, data);
             setTasks(data);
         } catch (error) {
-            console.error('Error fetching tasks:', error);
+            console.error('❌ Error fetching tasks:', error);
         } finally {
             setLoading(false);
         }
@@ -40,13 +42,13 @@ const TaskList = () => {
 
     // Filter Tasks
     const filteredTasks = tasks.filter(task => {
-        const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            task.projectCode?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = task.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            task.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            task.project_id?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = filters.status === 'All' || task.status === filters.status;
         const matchesPriority = filters.priority === 'All' || task.priority === filters.priority;
-        // Assuming we might filter by project later, implementing logic but UI needs project list
-        const matchesProject = filters.project === 'All' || task.projectName === filters.project;
+        const matchesProject = filters.project === 'All'; // Simplified for now
 
         return matchesSearch && matchesStatus && matchesPriority && matchesProject;
     });
