@@ -1,74 +1,56 @@
 import { supabase } from '../utils/supabaseClient';
 import { Project, Task, ProjectStatus, RaciMatrix, WorkflowStep, ProjectTemplate, TaskStatus, TaskPriority } from '../types';
 import { PROJECTS, EMPLOYEES } from '../constants'; // Fallback for mocks
+import { generateTasksForProject, syncProjectProgress } from '../utils/projectTaskHelpers';
 
-// Helper to map DB snake_case to App camelCase
+// Helper to map DB snake_case to App camelCase (simplified for new schema)
 const mapProjectFromDB = (p: any): Project => ({
     id: p.id,
     code: p.code,
     name: p.name,
-    client: p.client || '', // Or fetch from customer
-    location: p.location,
-    manager: p.manager || '', // Or fetch from employee
-
-    projectGroup: p.project_group,
-    constructionType: p.construction_type,
-    constructionLevel: p.construction_level,
-    scale: p.scale,
-
-    capitalSource: p.capital_source as any,
+    client: p.client || '',
+    location: p.location || '',
+    manager: p.manager_id || '',
     status: p.status as ProjectStatus,
-    progress: p.progress,
-    budget: Number(p.budget),
-    spent: Number(p.spent),
-    deadline: p.deadline,
-    members: p.members_count || 0,
-    thumbnail: p.thumbnail,
-
-    serviceType: p.service_type,
-    area: p.area,
-    unitPrice: p.unit_price,
-    phase: p.phase,
-    scope: p.scope,
-    statusDetail: p.status_detail,
-    failureReason: p.failure_reason,
-    folderUrl: p.folder_url,
-    completedAt: p.completed_at,
-    deliverables: p.deliverables
+    progress: p.progress || 0,
+    budget: Number(p.budget) || 0,
+    spent: Number(p.spent) || 0,
+    deadline: p.deadline || '',
+    thumbnail: p.thumbnail || '',
+    // Default values for fields not in new schema
+    projectGroup: '',
+    constructionType: '',
+    constructionLevel: '',
+    scale: '',
+    capitalSource: 'NonStateBudget' as any,
+    members: 0,
+    serviceType: '',
+    area: '',
+    unitPrice: '',
+    phase: '',
+    scope: '',
+    statusDetail: '',
+    failureReason: '',
+    folderUrl: '',
+    completedAt: null,
+    deliverables: ''
 });
 
-// Helper to map App camelCase to DB snake_case
+// Helper to map App camelCase to DB snake_case (simplified for new schema)
 const mapProjectToDB = (p: Partial<Project>) => ({
     code: p.code,
     name: p.name,
     client: p.client,
     location: p.location,
-    manager: p.manager,
-
-    project_group: p.projectGroup,
-    construction_type: p.constructionType,
-    construction_level: p.constructionLevel,
-    scale: p.scale,
-
-    capital_source: p.capitalSource,
+    manager_id: p.manager,
     status: p.status,
     progress: p.progress,
     budget: p.budget,
     spent: p.spent,
+    start_date: p.deadline, // Map deadline to start_date for now
     deadline: p.deadline,
-    members_count: p.members,
     thumbnail: p.thumbnail,
-
-    service_type: p.serviceType,
-    area: p.area,
-    unit_price: p.unitPrice,
-    phase: p.phase,
-    scope: p.scope,
-    status_detail: p.statusDetail,
-    failure_reason: p.failureReason,
-    folder_url: p.folderUrl,
-    completed_at: p.completedAt,
-    deliverables: p.deliverables
+    description: p.deliverables // Map deliverables to description
 });
 
 export const ProjectService = {
