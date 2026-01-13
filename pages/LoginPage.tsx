@@ -204,11 +204,11 @@ const LoginPage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Demo Login Button */}
+                    {/* Demo Login Removed for Production */
+                    /* Uncomment if needed for testing
                     <button
                         type="button"
                         onClick={() => {
-                            // Set demo user in localStorage and navigate
                             localStorage.setItem('demo_user', JSON.stringify({
                                 id: 'demo-user-001',
                                 email: 'demo@cic.vn',
@@ -217,7 +217,7 @@ const LoginPage: React.FC = () => {
                                 department: 'Phòng BIM'
                             }));
                             navigate('/');
-                            window.location.reload(); // Reload to pick up demo user
+                            window.location.reload();
                         }}
                         className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-3 px-4 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center justify-center gap-2"
                     >
@@ -226,6 +226,7 @@ const LoginPage: React.FC = () => {
                     <p className="text-center text-xs text-gray-500 mt-2">
                         Không cần tài khoản, dữ liệu mẫu
                     </p>
+                    */}
                 </div>
 
                 {/* Footer */}

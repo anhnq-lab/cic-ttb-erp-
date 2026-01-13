@@ -1,102 +1,102 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PROJECTS, TASKS, EMPLOYEES } from '../constants';
 
-export interface GeminiResponse {
-    text: string;
-    sources?: any[];
-}
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// Simulate AI processing delay and streaming
+// Context builder for the AI
+const buildContext = () => {
+    return `
+You are an intelligent assistant for the CIC TTB ERP system (BIM Center).
+Current Data Context:
+- Projects: ${PROJECTS.length} active projects including ${PROJECTS.map(p => p.name).join(', ')}.
+- Employees: ${EMPLOYEES.length} staff members.
+- Key Personnel: ${EMPLOYEES.slice(0, 5).map(e => `${e.name} (${e.role})`).join(', ')}.
+
+Your capabilities:
+1. Construct concise, helpful answers about projects, contracts, and personnel.
+2. If asked about specific data not in your context, politely explain you are limited to the ERP data.
+3. Use Vietnamese language.
+`;
+};
+
+// Fallback logic for when API is missing
+const mockChat = async (query: string): Promise<string> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const lowerQuery = query.toLowerCase();
+
+    if (lowerQuery.includes('dự án') || lowerQuery.includes('project')) {
+        return `[MOCK] Hệ thống có ${PROJECTS.length} dự án. Dự án gần nhất là ${PROJECTS[0].name}. (Vui lòng cấu hình VITE_GEMINI_API_KEY để có câu trả lời thông minh hơn)`;
+    }
+    if (lowerQuery.includes('nhân sự') || lowerQuery.includes('ai là')) {
+        return `[MOCK] Hệ thống có ${EMPLOYEES.length} nhân sự. (Vui lòng cấu hình VITE_GEMINI_API_KEY để có câu trả lời thông minh hơn)`;
+    }
+    return `Chào bạn! Tôi là CIC Gemini Assistant (Mock Mode). Vui lòng thêm API Key để kích hoạt trí tuệ nhân tạo thực sự.`;
+};
+
 export const GeminiService = {
     chat: async (query: string, messageHistory: any[]): Promise<string> => {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        const lowerQuery = query.toLowerCase();
-        let response = '';
-
-        // 1. PROJECT SEARCH INTENT
-        if (lowerQuery.includes('dự án') || lowerQuery.includes('project')) {
-            const matchedProjects = PROJECTS.filter(p =>
-                lowerQuery.includes(p.name.toLowerCase()) ||
-                lowerQuery.includes(p.code.toLowerCase())
-            );
-
-            if (matchedProjects.length > 0) {
-                const p = matchedProjects[0];
-                response = `### Thông tin Dự án: ${p.name}
-**Mã dự án**: \`${p.code}\`
-**Trạng thái**: ${p.status}
-**Tiến độ**: ${p.progress}%
-**Ngân sách**: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.budget)}
-
-**Mô tả**:
-Dự án này đang được quản lý bởi **${p.manager}**. Hiện tại đang trong giai đoạn **${p.constructionType}**.
-
-**Các công việc gần đây**:
-${TASKS.filter(t => t.projectId === p.id).slice(0, 3).map(t => `- [x] ${t.name}`).join('\n')}
-`;
-            } else {
-                response = `Tôi không tìm thấy dự án nào khớp với yêu cầu của bạn. 
-Hiện tại hệ thống có các dự án tiêu biểu như:
-${PROJECTS.slice(0, 3).map(p => `- **${p.name}** (${p.code})`).join('\n')}
-`;
-            }
+        if (!API_KEY) {
+            console.warn('Gemini API Key missing. Using mock response.');
+            return mockChat(query);
         }
 
-        // 2. PERSONNEL SEARCH INTENT
-        else if (lowerQuery.includes('nhân sự') || lowerQuery.includes('ai là') || lowerQuery.includes('liên hệ')) {
-            if (lowerQuery.includes('bim')) {
-                const bimTeam = EMPLOYEES.filter(e => e.role.includes('BIM'));
-                response = `### Đội ngũ BIM Modelers
-Dưới đây là danh sách các chuyên gia BIM của chúng ta:
+        try {
+            const genAI = new GoogleGenerativeAI(API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-| Tên | Vai trò | Phòng ban |
-|-----|---------|-----------|
-${bimTeam.map(e => `| ${e.name} | ${e.role} | ${e.department} |`).join('\n')}
-`;
-            } else {
-                response = `Hệ thống nhân sự hiện có **${EMPLOYEES.length}** thành viên. Bạn có thể hỏi cụ thể về bộ phận BIM, QA/QC hoặc tên cụ thể.`;
-            }
+            const history = messageHistory.map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }));
+
+            const chat = model.startChat({
+                history: [
+                    {
+                        role: 'user',
+                        parts: [{ text: buildContext() }] // Prime the model with context
+                    },
+                    {
+                        role: 'model',
+                        parts: [{ text: "Đã hiểu. Tôi sẵn sàng hỗ trợ thông tin về dự án, nhân sự và quy trình của CIC." }]
+                    },
+                    ...history
+                ]
+            });
+
+            const result = await chat.sendMessage(query);
+            return result.response.text();
+
+        } catch (error) {
+            console.error('Gemini API Error:', error);
+            return "Xin lỗi, hiện tại tôi không thể kết nối với hệ thống AI. Vui lòng thử lại sau.";
         }
-
-        // 3. KNOWLEDGE / SOP INTENT
-        else if (lowerQuery.includes('quy trình') || lowerQuery.includes('nghiệm thu') || lowerQuery.includes('checklist')) {
-            response = `### Quy trình Nghiệm thu (SOP)
-Dựa trên kho tri thức nội bộ, quy trình nghiệm thu bao gồm các bước sau:
-
-1. **Chuẩn bị**: Kiểm tra bản vẽ shopdrawing đã được phê duyệt.
-2. **Kiểm tra hiện trường**:
-   - Sử dụng Checklist Mẫu (CL-001, CL-002...).
-   - Chụp ảnh hiện trạng.
-3. **Ký biên bản**: Mời TVGS nghiệm thu và ký biên bản số.
-
-> **Lưu ý**: Tuyệt đối không nghiệm thu nếu thiếu hồ sơ vật liệu đầu vào.
-`;
-        }
-
-        // 4. DEFAULT GENERAL CHAT
-        else {
-            response = `Chào bạn! Tôi là **CIC Gemini Assistant**. Tôi có thể giúp gì cho bạn hôm nay?
-Bạn có thể hỏi tôi về:
-- *Thông tin dự án (tiến độ, ngân sách)*
-- *Nhân sự và phòng ban*
-- *Quy trình làm việc và biểu mẫu*
-`;
-        }
-
-        return response;
     },
 
-    // Mock Streaming: Returns a generator or simply we simulate chunks in UI,
-    // but here we just return full text for simplicity in "Frontend-Only" phase 1 of AI.
-    // For advanced feel, we can split text into chunks.
     streamResponse: async function* (query: string) {
-        const fullResponse = await this.chat(query, []);
-        const chunkSize = 10;
+        if (!API_KEY) {
+            const response = await mockChat(query);
+            yield response;
+            return;
+        }
 
-        for (let i = 0; i < fullResponse.length; i += chunkSize) {
-            await new Promise(resolve => setTimeout(resolve, 30)); // Typing effect
-            yield fullResponse.slice(i, i + chunkSize);
+        try {
+            const genAI = new GoogleGenerativeAI(API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+            const chat = model.startChat({
+                history: [
+                    { role: 'user', parts: [{ text: buildContext() }] },
+                    { role: 'model', parts: [{ text: "Sẵn sàng." }] }
+                ]
+            });
+
+            const result = await chat.sendMessageStream(query);
+            for await (const chunk of result.stream) {
+                yield chunk.text();
+            }
+        } catch (error) {
+            yield "Lỗi kết nối AI.";
         }
     }
 };
+

@@ -1,71 +1,161 @@
 /**
- * Employee Service - Mock Implementation
- * Uses data from constants (Supabase will be added later)
+ * Employee Service - Supabase Implementation
  */
 
+import { supabase } from '../utils/supabaseClient';
 import { Employee } from '../types';
-import { EMPLOYEES } from '../constants';
+import { EMPLOYEES } from '../constants'; // Fallback
 
-// Mock Store for Employees
-let MOCK_EMPLOYEE_STORE: Employee[] = [...EMPLOYEES];
+const mapEmployeeFromDB = (e: any): Employee => ({
+    id: e.id,
+    code: e.code,
+    name: e.full_name, // Map full_name -> name
+    position: e.position,
+    role: e.role,
+    department: e.department,
+    email: e.email,
+    phone: e.phone,
+    avatar: e.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(e.full_name || 'User'),
+    status: e.status,
+    joinDate: e.join_date,
+    skills: e.skills || [],
+    dob: e.dob,
+    degree: e.education?.degree,
+    certificates: e.education?.certificates,
+    graduationYear: e.education?.graduationYear,
+    profileUrl: e.profile_url
+});
+
+const mapEmployeeToDB = (e: Partial<Employee>) => {
+    const payload: any = {
+        code: e.code,
+        full_name: e.name,
+        position: e.position,
+        role: e.role,
+        department: e.department,
+        email: e.email,
+        phone: e.phone,
+        avatar_url: e.avatar,
+        status: e.status,
+        join_date: e.joinDate,
+        skills: e.skills,
+        dob: e.dob,
+        education: {
+            degree: e.degree,
+            certificates: e.certificates,
+            graduationYear: e.graduationYear
+        },
+        profile_url: e.profileUrl
+    };
+
+    // Remove undefined
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+    return payload;
+};
 
 export const EmployeeService = {
     // Get All Employees
     getEmployees: async (): Promise<Employee[]> => {
-        if (MOCK_EMPLOYEE_STORE.length === 0 && EMPLOYEES.length > 0) {
-            MOCK_EMPLOYEE_STORE = [...EMPLOYEES];
+        const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching employees:', error);
+            return EMPLOYEES;
         }
-        return [...MOCK_EMPLOYEE_STORE];
+        return data.map(mapEmployeeFromDB);
     },
 
     // Get Employee by ID
     getEmployeeById: async (id: string): Promise<Employee | undefined> => {
-        return MOCK_EMPLOYEE_STORE.find(e => e.id === id || e.code === id);
+        // Try ID first
+        let { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !data) {
+            // Try code
+            const { data: dataCode, error: errorCode } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('code', id)
+                .single();
+            data = dataCode;
+            error = errorCode;
+        }
+
+        if (error || !data) return undefined;
+        return mapEmployeeFromDB(data);
     },
 
     // Create Employee
     createEmployee: async (employee: Omit<Employee, 'id'>): Promise<Employee | null> => {
-        const newEmployee = { ...employee, id: `EMP-${Date.now()}` } as Employee;
-        MOCK_EMPLOYEE_STORE.unshift(newEmployee);
-        return newEmployee;
+        const payload = mapEmployeeToDB(employee);
+        const { data, error } = await supabase
+            .from('employees')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating employee:', error);
+            return null;
+        }
+        return mapEmployeeFromDB(data);
     },
 
     // Update Employee
     updateEmployee: async (id: string, updates: Partial<Employee>): Promise<Employee | null> => {
-        const idx = MOCK_EMPLOYEE_STORE.findIndex(e => e.id === id);
-        if (idx > -1) {
-            MOCK_EMPLOYEE_STORE[idx] = { ...MOCK_EMPLOYEE_STORE[idx], ...updates };
-            return MOCK_EMPLOYEE_STORE[idx];
+        const payload = mapEmployeeToDB(updates);
+        const { data, error } = await supabase
+            .from('employees')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating employee:', error);
+            return null;
         }
-        return null;
+        return mapEmployeeFromDB(data);
     },
 
     // Delete Employee
     deleteEmployee: async (id: string): Promise<boolean> => {
-        const originalLength = MOCK_EMPLOYEE_STORE.length;
-        MOCK_EMPLOYEE_STORE = MOCK_EMPLOYEE_STORE.filter(e => e.id !== id);
-        return MOCK_EMPLOYEE_STORE.length < originalLength;
+        const { error } = await supabase.from('employees').delete().eq('id', id);
+        return !error;
     },
 
     // Get Employees by Department
     getEmployeesByDepartment: async (department: string): Promise<Employee[]> => {
-        const all = await EmployeeService.getEmployees();
-        return all.filter(e => e.department === department);
+        const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('department', department);
+
+        if (error) return [];
+        return data.map(mapEmployeeFromDB);
     },
 
     // Get Employees by Status
     getEmployeesByStatus: async (status: Employee['status']): Promise<Employee[]> => {
-        const all = await EmployeeService.getEmployees();
-        return all.filter(e => e.status === status);
+        const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('status', status);
+
+        if (error) return [];
+        return data.map(mapEmployeeFromDB);
     },
 
     // Get Employee Statistics
-    getEmployeeStats: async (): Promise<{
-        total: number;
-        byStatus: Record<string, number>;
-        byDepartment: Array<{ department: string; count: number }>;
-        avgTenureYears: number;
-    }> => {
+    getEmployeeStats: async () => {
+        // Fetch all (or use RPC for stats if large)
         const employees = await EmployeeService.getEmployees();
         const today = new Date();
 
@@ -88,7 +178,7 @@ export const EmployeeService = {
     },
 
     // Get Department Distribution
-    getDepartmentDistribution: async (): Promise<Array<{ department: string; total: number; roles: Record<string, number> }>> => {
+    getDepartmentDistribution: async () => {
         const employees = await EmployeeService.getEmployees();
         const deptMap: Record<string, { total: number; roles: Record<string, number> }> = {};
 
@@ -103,7 +193,7 @@ export const EmployeeService = {
     },
 
     // Get Employees by Tenure
-    getEmployeesByTenure: async (): Promise<{ lessThan1Year: number; oneToThreeYears: number; threeToFiveYears: number; moreThanFiveYears: number }> => {
+    getEmployeesByTenure: async () => {
         const employees = await EmployeeService.getEmployees();
         const today = new Date();
         let lessThan1Year = 0, oneToThreeYears = 0, threeToFiveYears = 0, moreThanFiveYears = 0;
@@ -122,12 +212,27 @@ export const EmployeeService = {
 
     // Search Employees
     searchEmployees: async (query: string): Promise<Employee[]> => {
-        const employees = await EmployeeService.getEmployees();
+        // Supabase text search can be used here: .ilike('full_name', `%${query}%`)
         const lowerQuery = query.toLowerCase();
-        return employees.filter(e => e.name.toLowerCase().includes(lowerQuery) || (e.email && e.email.toLowerCase().includes(lowerQuery)));
+        const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .ilike('full_name', `%${lowerQuery}%`); // Simple server-side filter
+
+        if (error || !data) return [];
+        return data.map(mapEmployeeFromDB);
     },
 
-    // Subscribe (no-op without Supabase)
-    subscribeToEmployees: (callback: () => void) => null,
-    unsubscribe: (channel: any) => { }
+    // Subscribe (Stub for now)
+    subscribeToEmployees: (callback: () => void) => {
+        // Realtime subscription logic would go here
+        return supabase
+            .channel('public:employees')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, callback)
+            .subscribe();
+    },
+    unsubscribe: (channel: any) => {
+        if (channel) supabase.removeChannel(channel);
+    }
 };
+

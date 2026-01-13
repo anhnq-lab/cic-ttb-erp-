@@ -1,12 +1,14 @@
 /**
  * Authentication Context
- * Mock authentication for development - Supabase will be added later
+ * Real Supabase authentication implementation
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../utils/supabaseClient';
+import { Session, User } from '@supabase/supabase-js';
 
 // User profile extended with employee info
-interface UserProfile {
+export interface UserProfile {
     id: string;
     email: string;
     name: string;
@@ -17,9 +19,9 @@ interface UserProfile {
 }
 
 interface AuthContextType {
-    user: { id: string; email: string } | null;
+    user: User | null;
     profile: UserProfile | null;
-    session: null;
+    session: Session | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
     signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
@@ -38,19 +40,24 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for demo user in localStorage
-        const checkSession = async () => {
+        // 1. Check active session
+        const initSession = async () => {
             try {
-                const demoUserStr = localStorage.getItem('demo_user');
-                if (demoUserStr) {
-                    const demoUser = JSON.parse(demoUserStr);
-                    setProfile(demoUser);
-                    setUser({ id: demoUser.id, email: demoUser.email });
+                const { data: { session: existingSession }, error } = await supabase.auth.getSession();
+
+                if (error) throw error;
+
+                setSession(existingSession);
+                setUser(existingSession?.user ?? null);
+
+                if (existingSession?.user) {
+                    await fetchProfile(existingSession.user);
                 }
             } catch (error) {
                 console.error('Session check error:', error);
@@ -59,46 +66,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        checkSession();
+        initSession();
+
+        // 2. Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+
+            if (newSession?.user) {
+                await fetchProfile(newSession.user);
+            } else {
+                setProfile(null);
+            }
+            setLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
+
+    const fetchProfile = async (currentUser: User) => {
+        try {
+            // First try to get from 'employees' table if we have one (mapped by email)
+            const { data: employeeData, error } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('email', currentUser.email)
+                .single();
+
+            if (employeeData && !error) {
+                setProfile({
+                    id: currentUser.id,
+                    email: currentUser.email || '',
+                    name: employeeData.name,
+                    avatar: employeeData.avatar,
+                    role: employeeData.role,
+                    department: employeeData.department,
+                    employeeId: employeeData.id
+                });
+            } else {
+                // Fallback to metadata
+                setProfile({
+                    id: currentUser.id,
+                    email: currentUser.email || '',
+                    name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                    role: currentUser.user_metadata?.role || 'User',
+                    avatar: currentUser.user_metadata?.avatar_url
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+        }
+    };
 
     const signIn = async (email: string, password: string) => {
         setLoading(true);
-        // Mock sign in - accept any credentials for demo
-        const mockUser = {
-            id: 'user-' + Date.now(),
-            email: email,
-            name: email.split('@')[0],
-            role: 'Admin',
-            department: 'BIM'
-        };
-        localStorage.setItem('demo_user', JSON.stringify(mockUser));
-        setUser({ id: mockUser.id, email: mockUser.email });
-        setProfile(mockUser);
-        setLoading(false);
-        return { error: null };
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+        if (error) setLoading(false);
+        return { error };
     };
 
     const signUp = async (email: string, password: string, name: string) => {
         setLoading(true);
-        const mockUser = {
-            id: 'user-' + Date.now(),
-            email: email,
-            name: name,
-            role: 'User',
-            department: 'BIM'
-        };
-        localStorage.setItem('demo_user', JSON.stringify(mockUser));
-        setUser({ id: mockUser.id, email: mockUser.email });
-        setProfile(mockUser);
-        setLoading(false);
-        return { error: null };
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: name,
+                    role: 'User' // Default role
+                }
+            }
+        });
+        if (error) setLoading(false);
+        return { error };
     };
 
     const signOut = async () => {
         setLoading(true);
-        localStorage.removeItem('demo_user');
+        await supabase.auth.signOut();
         setUser(null);
+        setSession(null);
         setProfile(null);
         setLoading(false);
     };
@@ -106,12 +156,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const value: AuthContextType = {
         user,
         profile,
-        session: null,
+        session,
         loading,
         signIn,
         signUp,
         signOut,
-        isAuthenticated: !!user || !!localStorage.getItem('demo_user'),
+        isAuthenticated: !!session?.user,
     };
 
     return (
