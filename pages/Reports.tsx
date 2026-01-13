@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import Header from '../components/Header';
-import { FileText, Download, Filter, Calendar, BarChart2, PieChart, Users, CheckSquare, Printer, Share2 } from 'lucide-react';
+import { FileText, Download, Filter, Calendar, BarChart2, PieChart, Users, CheckSquare, Printer, Share2, Clock } from 'lucide-react';
 import { PROJECTS } from '../constants';
+import TaskTimeReport from '../components/TaskTimeReport';
 
-type ReportType = 'progress' | 'finance' | 'quality' | 'hr';
+type ReportType = 'progress' | 'finance' | 'quality' | 'hr' | 'task_time';
 
 const Reports = () => {
     const [reportType, setReportType] = useState<ReportType>('progress');
@@ -80,6 +81,8 @@ const Reports = () => {
                         </table>
                     </div>
                 );
+            case 'task_time':
+                return <TaskTimeReport projectId={selectedProject === 'all' ? undefined : selectedProject} />;
             case 'finance':
                 return (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -136,6 +139,12 @@ const Reports = () => {
                                         className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${reportType === 'hr' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm border' : 'hover:bg-gray-50 text-slate-600'}`}
                                     >
                                         <Users size={18} /> Hiệu suất Nhân sự
+                                    </button>
+                                    <button
+                                        onClick={() => setReportType('task_time')}
+                                        className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all ${reportType === 'task_time' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm border' : 'hover:bg-gray-50 text-slate-600'}`}
+                                    >
+                                        <Clock size={18} /> Variance Phân tích giờ làm
                                     </button>
                                 </div>
                             </div>

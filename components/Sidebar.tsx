@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Layout, FileText, Users, PieChart, Settings, Building2, BookOpen, Handshake, User, LogOut, List, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Layout, FileText, Users, PieChart, Settings, Building2, BookOpen, Handshake, User, LogOut, List, Sparkles, ClipboardList } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -75,6 +75,7 @@ const Sidebar = () => {
     { icon: FileText, label: 'Hợp đồng & Tài chính', path: '/contracts' },
     { icon: Handshake, label: 'Khách hàng & Đối tác', path: '/crm' },
     { icon: Users, label: 'Nhân sự & HRM', path: '/hr' },
+    { icon: ClipboardList, label: 'Báo cáo ngày', path: '/daily-reports' },
     { icon: Sparkles, label: 'Kho tri thức (AI)', path: '/knowledge-base' },
     { icon: BookOpen, label: 'Quy chế Trung tâm', path: '/policy' },
   ];

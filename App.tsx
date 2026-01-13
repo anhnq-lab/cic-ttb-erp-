@@ -2,7 +2,7 @@
 
 console.log('App.tsx starting...');
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
@@ -19,6 +19,7 @@ import LoginPage from './pages/LoginPage';
 import AIChatAssistant from './components/AIChatAssistant';
 import KnowledgeBase from './pages/KnowledgeBase';
 import Reports from './pages/Reports';
+import DailyReportList from './pages/DailyReportList';
 
 // Layout wrapper for authenticated pages
 const AuthenticatedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -107,6 +108,13 @@ const App = () => {
             <ProtectedRoute>
               <AuthenticatedLayout>
                 <PolicyViewer />
+              </AuthenticatedLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/daily-reports" element={
+            <ProtectedRoute>
+              <AuthenticatedLayout>
+                <DailyReportList />
               </AuthenticatedLayout>
             </ProtectedRoute>
           } />

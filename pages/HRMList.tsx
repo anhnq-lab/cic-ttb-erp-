@@ -582,7 +582,7 @@ const EmployeeDetailModal = ({ employee, onClose }: { employee: Employee, onClos
                     <div className="border-b border-gray-200">
                         <div className="flex gap-8">
                             <button onClick={() => setActiveTab('info')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'info' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Thông tin cá nhân</button>
-                            <button onClick={() => setActiveTab('timekeeping')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'timekeeping' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Chấm công (Timesheet)</button>
+                            <button onClick={() => setActiveTab('timekeeping')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'timekeeping' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Báo cáo ngày (Daily Report)</button>
                         </div>
                     </div>
                 </div>
@@ -689,7 +689,7 @@ const TimekeepingTab = () => (
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-sm text-gray-700">Lịch sử chấm công (Tháng 03/2025)</div>
+            <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-sm text-gray-700">Lịch sử báo cáo công việc (Tháng 03/2025)</div>
             <table className="w-full text-left text-sm">
                 <thead className="bg-white text-gray-500 border-b border-gray-100">
                     <tr>
