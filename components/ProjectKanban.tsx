@@ -1,7 +1,20 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
 import { ArrowLeftCircle, ArrowRightCircle } from 'lucide-react';
+import {
+    DndContext,
+    DragEndEvent,
+    DragOverlay,
+    DragStartEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    closestCorners
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Map sequence of statuses for movement
 const STATUS_SEQUENCE = [
@@ -16,20 +29,40 @@ const STATUS_SEQUENCE = [
     TaskStatus.COMPLETED
 ];
 
-interface ProjectKanbanProps {
-    tasks: Task[];
-    onMoveTask: (taskId: string, newStatus: TaskStatus) => void;
+interface DraggableCardProps {
+    task: Task;
+    onMove: (id: string, newStatus: TaskStatus) => void;
+    onEdit: (task: Task) => void;
 }
 
-const KanbanCard: React.FC<{ task: Task, onMove: (id: string, newStatus: TaskStatus) => void, onEdit: (task: Task) => void }> = ({ task, onMove, onEdit }) => {
+const DraggableCard: React.FC<DraggableCardProps> = ({ task, onMove, onEdit }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: task.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
     const currentStatusIdx = STATUS_SEQUENCE.indexOf(task.status);
     const prevStatus = currentStatusIdx > 0 ? STATUS_SEQUENCE[currentStatusIdx - 1] : null;
     const nextStatus = currentStatusIdx < STATUS_SEQUENCE.length - 1 ? STATUS_SEQUENCE[currentStatusIdx + 1] : null;
 
     return (
         <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
             onClick={() => onEdit(task)}
-            className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative hover:border-orange-300"
+            className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing group relative hover:border-orange-300"
         >
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] font-mono font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
@@ -57,7 +90,7 @@ const KanbanCard: React.FC<{ task: Task, onMove: (id: string, newStatus: TaskSta
                     <span className="text-xs text-gray-500 font-medium truncate max-w-[80px]">{task.assignee?.name || 'Unassigned'}</span>
                 </div>
 
-                {/* INTERACTIVE CONTROLS */}
+                {/* INTERACTIVE CONTROLS - Fallback buttons */}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 bottom-2 bg-white pl-2">
                     {prevStatus && (
                         <button
@@ -81,30 +114,45 @@ const KanbanCard: React.FC<{ task: Task, onMove: (id: string, newStatus: TaskSta
     );
 };
 
-const KanbanColumn: React.FC<{ title: string, status: string, tasks?: Task[], count: number, onMove: (id: string, s: TaskStatus) => void, onEdit: (task: Task) => void }> = ({ title, status, tasks = [], count, onMove, onEdit }) => (
-    <div className="flex-1 min-w-[200px] flex flex-col h-full bg-gray-50/50 rounded-xl border border-gray-200/60 transition-all duration-300">
-        <div className="p-2 flex items-center justify-between border-b border-gray-100 bg-gray-50 rounded-t-xl">
-            <div className="flex items-center gap-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full 
-                    ${status.includes('S0') ? 'bg-blue-500' :
-                        status.includes('S6') ? 'bg-emerald-500' :
-                            status.includes('S4') ? 'bg-amber-500' : 'bg-slate-400'}`}>
+interface DroppableColumnProps {
+    title: string;
+    status: TaskStatus;
+    tasks: Task[];
+    count: number;
+    onMove: (id: string, s: TaskStatus) => void;
+    onEdit: (task: Task) => void;
+}
+
+const DroppableColumn: React.FC<DroppableColumnProps> = ({ title, status, tasks = [], count, onMove, onEdit }) => {
+    const taskIds = tasks.map(t => t.id);
+
+    return (
+        <div className="flex-1 min-w-[200px] flex flex-col h-full bg-gray-50/50 rounded-xl border border-gray-200/60 transition-all duration-300">
+            <div className="p-2 flex items-center justify-between border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                <div className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full 
+                        ${status.includes('S0') ? 'bg-blue-500' :
+                            status.includes('S6') ? 'bg-emerald-500' :
+                                status.includes('S4') ? 'bg-amber-500' : 'bg-slate-400'}`}>
+                    </div>
+                    <h3 className="text-[10px] uppercase font-bold text-slate-700 tracking-wide truncate max-w-[120px]" title={title}>{title}</h3>
                 </div>
-                <h3 className="text-[10px] uppercase font-bold text-slate-700 tracking-wide truncate max-w-[120px]" title={title}>{title}</h3>
+                <span className="text-[10px] font-bold text-gray-400 bg-white px-1.5 py-0.5 rounded-full border border-gray-200 shadow-sm">{count}</span>
             </div>
-            <span className="text-[10px] font-bold text-gray-400 bg-white px-1.5 py-0.5 rounded-full border border-gray-200 shadow-sm">{count}</span>
-        </div>
-        <div className="flex-1 p-1.5 overflow-y-auto custom-scrollbar space-y-2">
-            {tasks && tasks.length > 0 ? (
-                tasks.map(task => <KanbanCard key={task.id} task={task} onMove={onMove} onEdit={onEdit} />)
-            ) : (
-                <div className="h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-[10px] text-gray-400">
-                    Trống
+            <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                <div className="flex-1 p-1.5 overflow-y-auto custom-scrollbar space-y-2 min-h-[100px]">
+                    {tasks && tasks.length > 0 ? (
+                        tasks.map(task => <DraggableCard key={task.id} task={task} onMove={onMove} onEdit={onEdit} />)
+                    ) : (
+                        <div className="h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-[10px] text-gray-400">
+                            Kéo thả task vào đây
+                        </div>
+                    )}
                 </div>
-            )}
+            </SortableContext>
         </div>
-    </div>
-);
+    );
+};
 
 interface ProjectKanbanProps {
     tasks: Task[];
@@ -113,6 +161,16 @@ interface ProjectKanbanProps {
 }
 
 const ProjectKanban: React.FC<ProjectKanbanProps> = ({ tasks, onMoveTask, onEditTask }) => {
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Prevent accidental drags
+            },
+        })
+    );
+
     const tasksByStatus: Record<string, Task[]> = {
         [TaskStatus.OPEN]: tasks.filter(t => t.status === TaskStatus.OPEN),
         [TaskStatus.S0]: tasks.filter(t => t.status === TaskStatus.S0),
@@ -125,18 +183,72 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ tasks, onMoveTask, onEdit
         [TaskStatus.COMPLETED]: tasks.filter(t => t.status === TaskStatus.COMPLETED),
     };
 
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const task = tasks.find(t => t.id === active.id);
+        setActiveTask(task || null);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveTask(null);
+
+        if (!over) return;
+
+        // Determine which column was dropped on
+        const overId = over.id as string;
+        let targetStatus: TaskStatus | null = null;
+
+        // Check if dropped on a column (status) or another task
+        Object.entries(tasksByStatus).forEach(([status, columnTasks]) => {
+            if (columnTasks.some(t => t.id === overId)) {
+                targetStatus = status as TaskStatus;
+            }
+        });
+
+        // If no target status found, check if overId itself is a status
+        if (!targetStatus && Object.values(TaskStatus).includes(overId as TaskStatus)) {
+            targetStatus = overId as TaskStatus;
+        }
+
+        // Find the task being dragged
+        const draggedTask = tasks.find(t => t.id === active.id);
+        if (!draggedTask) return;
+
+        // If we found a target status and it's different from current, move the task
+        if (targetStatus && draggedTask.status !== targetStatus) {
+            onMoveTask(active.id as string, targetStatus);
+        }
+    };
+
     return (
-        <div className="flex gap-2 pb-2 h-[calc(100vh-400px)] min-h-[500px] w-full overflow-x-auto custom-scrollbar">
-            <KanbanColumn title="Chưa thực hiện" status={TaskStatus.OPEN} tasks={tasksByStatus[TaskStatus.OPEN]} count={tasksByStatus[TaskStatus.OPEN]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S0 - Đang triển khai" status={TaskStatus.S0} tasks={tasksByStatus[TaskStatus.S0]} count={tasksByStatus[TaskStatus.S0]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S1 - Phối hợp bộ môn" status={TaskStatus.S1} tasks={tasksByStatus[TaskStatus.S1]} count={tasksByStatus[TaskStatus.S1]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S2 - Kiểm tra chéo" status={TaskStatus.S2} tasks={tasksByStatus[TaskStatus.S2]} count={tasksByStatus[TaskStatus.S2]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S3 - Kiểm tra nội bộ" status={TaskStatus.S3} tasks={tasksByStatus[TaskStatus.S3]} count={tasksByStatus[TaskStatus.S3]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S4 - Lãnh đạo duyệt" status={TaskStatus.S4} tasks={tasksByStatus[TaskStatus.S4]} count={tasksByStatus[TaskStatus.S4]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S5 - Đã duyệt (Chờ trình)" status={TaskStatus.S5} tasks={tasksByStatus[TaskStatus.S5]} count={tasksByStatus[TaskStatus.S5]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="S6 - Trình khách hàng" status={TaskStatus.S6} tasks={tasksByStatus[TaskStatus.S6]} count={tasksByStatus[TaskStatus.S6]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-            <KanbanColumn title="Hoàn thành" status={TaskStatus.COMPLETED} tasks={tasksByStatus[TaskStatus.COMPLETED]} count={tasksByStatus[TaskStatus.COMPLETED]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
-        </div>
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="flex gap-2 pb-2 h-[calc(100vh-400px)] min-h-[500px] w-full overflow-x-auto custom-scrollbar">
+                <DroppableColumn title="Chưa thực hiện" status={TaskStatus.OPEN} tasks={tasksByStatus[TaskStatus.OPEN]} count={tasksByStatus[TaskStatus.OPEN]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S0 - Đang triển khai" status={TaskStatus.S0} tasks={tasksByStatus[TaskStatus.S0]} count={tasksByStatus[TaskStatus.S0]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S1 - Phối hợp bộ môn" status={TaskStatus.S1} tasks={tasksByStatus[TaskStatus.S1]} count={tasksByStatus[TaskStatus.S1]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S2 - Kiểm tra chéo" status={TaskStatus.S2} tasks={tasksByStatus[TaskStatus.S2]} count={tasksByStatus[TaskStatus.S2]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S3 - Kiểm tra nội bộ" status={TaskStatus.S3} tasks={tasksByStatus[TaskStatus.S3]} count={tasksByStatus[TaskStatus.S3]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S4 - Lãnh đạo duyệt" status={TaskStatus.S4} tasks={tasksByStatus[TaskStatus.S4]} count={tasksByStatus[TaskStatus.S4]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S5 - Đã duyệt (Chờ trình)" status={TaskStatus.S5} tasks={tasksByStatus[TaskStatus.S5]} count={tasksByStatus[TaskStatus.S5]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="S6 - Trình khách hàng" status={TaskStatus.S6} tasks={tasksByStatus[TaskStatus.S6]} count={tasksByStatus[TaskStatus.S6]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+                <DroppableColumn title="Hoàn thành" status={TaskStatus.COMPLETED} tasks={tasksByStatus[TaskStatus.COMPLETED]} count={tasksByStatus[TaskStatus.COMPLETED]?.length || 0} onMove={onMoveTask} onEdit={onEditTask} />
+            </div>
+
+            <DragOverlay>
+                {activeTask ? (
+                    <div className="bg-white p-3 rounded-lg border-2 border-orange-400 shadow-xl rotate-3 opacity-90">
+                        <div className="text-sm font-semibold text-slate-800">{activeTask.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">{activeTask.code}</div>
+                    </div>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
     );
 };
 
