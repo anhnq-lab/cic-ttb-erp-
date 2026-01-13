@@ -4,8 +4,9 @@
 -- ============================================
 
 -- ========== ADMIN USER ==========
+-- IMPORTANT: Email phải khớp với Supabase Auth user
 INSERT INTO public.employees (code, name, email, role, department, status) VALUES
-('ADMIN', 'Administrator', 'admin@cic.vn', 'Admin', 'IT', 'Active')
+('ADMIN', 'Administrator', 'admin@cic.com.vn', 'Admin', 'IT', 'Active')
 ON CONFLICT (email) DO UPDATE 
 SET name = EXCLUDED.name, role = EXCLUDED.role;
 
@@ -20,11 +21,11 @@ DO $$
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE '✅ Minimal seed data inserted!';
-    RAISE NOTICE '   - 1 Admin user: admin@cic.vn';
+    RAISE NOTICE '   - 1 Admin user: admin@cic.com.vn';
     RAISE NOTICE '   - 2 Test employees';
     RAISE NOTICE '';
     RAISE NOTICE '📝 Next steps:';
-    RAISE NOTICE '   1. Create Supabase Auth user: admin@cic.vn';
+    RAISE NOTICE '   1. Verify Supabase Auth user email matches';
     RAISE NOTICE '   2. Test creating projects via app';
     RAISE NOTICE '   3. Verify auto-task generation';
     RAISE NOTICE '========================================';

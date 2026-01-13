@@ -48,8 +48,14 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
+            // Remove empty manager to prevent FK violation
+            const projectData = { ...formData };
+            if (!projectData.manager) {
+                delete (projectData as any).manager;
+            }
+
             // Create Project (will auto-generate tasks)
-            const newProject = await ProjectService.createProject(formData as Project);
+            const newProject = await ProjectService.createProject(projectData as Project);
 
             if (newProject) {
                 console.log('✅ Project created with auto-generated tasks!');
@@ -68,11 +74,12 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                     budget: 0
                 });
             } else {
-                alert('Không thể tạo dự án. Vui lòng kiểm tra console.');
+                alert('Không thể tạo dự án. Vui lòng kiểm tra Supabase logs hoặc browser console.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Creation failed", error);
-            alert(`Lỗi: ${error}`);
+            const errorMsg = error?.message || error?.toString() || 'Unknown error';
+            alert(`Lỗi tạo dự án:\n${errorMsg}\n\nVui lòng check console để biết chi tiết.`);
         } finally {
             setIsLoading(false);
         }
