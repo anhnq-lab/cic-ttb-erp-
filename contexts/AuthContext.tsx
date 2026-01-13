@@ -49,6 +49,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 1. Check active session
         const initSession = async () => {
             try {
+                // AUTO-LOGIN FOR DEVELOPMENT
+                const isDevelopment = import.meta.env.DEV;
+                const autoLoginEmail = 'admin@cic.com.vn';
+                const autoLoginPassword = 'admin123';
+
+                if (isDevelopment) {
+                    console.log('🔧 DEV MODE: Checking for auto-login...');
+
+                    // Check if already logged in
+                    const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+
+                    if (!existingSession && !sessionError) {
+                        console.log('🔐 DEV MODE: Auto-logging in as admin...');
+                        const { error: signInError } = await supabase.auth.signInWithPassword({
+                            email: autoLoginEmail,
+                            password: autoLoginPassword
+                        });
+
+                        if (signInError) {
+                            console.warn('⚠️  DEV MODE: Auto-login failed, creating account...', signInError.message);
+                            // If user doesn't exist, try to create it
+                            const { error: signUpError } = await supabase.auth.signUp({
+                                email: autoLoginEmail,
+                                password: autoLoginPassword,
+                                options: {
+                                    data: {
+                                        full_name: 'Admin User',
+                                        role: 'Admin'
+                                    }
+                                }
+                            });
+                            if (signUpError) {
+                                console.error('❌ DEV MODE: Auto signup failed:', signUpError);
+                            } else {
+                                console.log('✅ DEV MODE: Account created, please verify email if needed');
+                            }
+                        } else {
+                            console.log('✅ DEV MODE: Auto-login successful!');
+                        }
+                        // Fetch session again after login
+                        const { data: { session: newSession } } = await supabase.auth.getSession();
+                        setSession(newSession);
+                        setUser(newSession?.user ?? null);
+                        if (newSession?.user) {
+                            await fetchProfile(newSession.user);
+                        }
+                        setLoading(false);
+                        return;
+                    } else if (existingSession) {
+                        console.log('✅ DEV MODE: Already logged in as', existingSession.user.email);
+                    }
+                }
+
+                // Normal session check for production
                 const { data: { session: existingSession }, error } = await supabase.auth.getSession();
 
                 if (error) throw error;
