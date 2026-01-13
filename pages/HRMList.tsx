@@ -1,14 +1,17 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import Header from '../components/Header';
 import { TASKS } from '../constants';
 import { Employee, TaskStatus } from '../types';
 import { EmployeeService } from '../services/employee.service';
+import ImportModal from '../components/ImportModal';
+import EmployeeDeleteDialog from '../components/EmployeeDeleteDialog';
 import {
     Users, Search, Filter, LayoutGrid, List, Plus,
     MoreHorizontal, Mail, Phone, MapPin, Briefcase,
     Award, UserPlus, Building, Calendar, CheckCircle, Clock,
-    X, CreditCard, FileText, TrendingUp, Loader2
+    X, CreditCard, FileText, TrendingUp, Loader2, Upload, Download, Trash2, Folder
 } from 'lucide-react';
 
 const HRMList = () => {
@@ -21,8 +24,12 @@ const HRMList = () => {
     // --- STATE FOR MODALS ---
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+    const [deleteProjectCount, setDeleteProjectCount] = useState(0);
 
     // --- DATA STATE (From Backend/Service) ---
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -158,6 +165,82 @@ const HRMList = () => {
         setEditEmp({});
     };
 
+    // --- IMPORT/EXPORT HANDLERS ---
+    const handleImportEmployees = async (data: any[]) => {
+        const employeesToImport: Omit<Employee, 'id'>[] = data.map(row => ({
+            code: row.Code || `CIC-${Math.floor(100 + Math.random() * 900)}`,
+            name: row.Name || row['Họ và tên'],
+            email: row.Email,
+            phone: row.Phone || row['Số điện thoại'],
+            department: row.Department || row['Phòng ban'],
+            role: row.Role || row['Vị trí'],
+            joinDate: row.JoinDate || row['Ngày vào làm'],
+            status: (row.Status || row['Trạng thái'] || 'Thử việc') as any,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(row.Name || row['Họ và tên'])}&background=random&color=fff&size=150`,
+            dob: row.DOB || row['Ngày sinh'],
+            degree: row.Degree || row['Bằng cấp'],
+            skills: row.Skills ? row.Skills.split(',').map((s: string) => s.trim()) : []
+        }));
+
+        const result = await EmployeeService.bulkCreateEmployees(employeesToImport);
+
+        if (result.success.length > 0) {
+            setEmployees(prev => [...result.success, ...prev]);
+            alert(`Import thành công ${result.success.length} nhân viên!`);
+        }
+
+        if (result.failed.length > 0) {
+            console.error('Failed imports:', result.failed);
+            alert(`Có ${result.failed.length} nhân viên import thất bại. Kiểm tra console để xem chi tiết.`);
+        }
+    };
+
+    const handleExportEmployees = async () => {
+        const excelData = await EmployeeService.exportEmployeesToExcelData();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Employees");
+        XLSX.writeFile(wb, `Danh_sach_nhan_su_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    // --- DELETE HANDLERS ---
+    const openDeleteDialog = async (employee: Employee) => {
+        setDeletingEmployee(employee);
+        // Check project participation
+        const projects = await EmployeeService.getEmployeeProjects(employee.id);
+        setDeleteProjectCount(projects.length);
+        setShowDeleteDialog(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deletingEmployee) return;
+
+        const result = await EmployeeService.deleteEmployeeWithValidation(deletingEmployee.id);
+
+        if (result.success) {
+            setEmployees(prev => prev.filter(e => e.id !== deletingEmployee.id));
+            alert(result.message);
+        } else {
+            alert(result.message);
+        }
+
+        setShowDeleteDialog(false);
+        setDeletingEmployee(null);
+    };
+
+    const handleChangeToInactive = async () => {
+        if (!deletingEmployee) return;
+
+        const updated = await EmployeeService.updateEmployee(deletingEmployee.id, { status: 'Inactive' as any });
+        if (updated) {
+            setEmployees(prev => prev.map(e => e.id === deletingEmployee.id ? updated : e));
+            alert('Đã chuyển nhân viên sang trạng thái "Nghỉ việc"');
+        }
+
+        setShowDeleteDialog(false);
+        setDeletingEmployee(null);
+    };
+
     return (
         <div className="flex-1 bg-gray-50 min-h-screen">
             <Header title="Quản trị Nguồn nhân lực" breadcrumb="Trang chủ / Nhân sự" />
@@ -287,6 +370,27 @@ const HRMList = () => {
                 <EmployeeDetailModal employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} />
             )}
 
+            {/* --- IMPORT MODAL --- */}
+            {showImportModal && (
+                <ImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onImport={handleImportEmployees}
+                    type="Employee"
+                />
+            )}
+
+            {/* --- DELETE CONFIRMATION DIALOG --- */}
+            {showDeleteDialog && deletingEmployee && (
+                <EmployeeDeleteDialog
+                    employee={deletingEmployee}
+                    onClose={() => { setShowDeleteDialog(false); setDeletingEmployee(null); }}
+                    onConfirmDelete={handleConfirmDelete}
+                    onChangeStatus={handleChangeToInactive}
+                    projectCount={deleteProjectCount}
+                />
+            )}
+
             <main className="p-8 w-full">
 
                 {/* HRM Stats */}
@@ -391,6 +495,20 @@ const HRMList = () => {
                         </div>
 
                         <button
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-all text-sm"
+                        >
+                            <Upload size={18} /> Import Excel
+                        </button>
+
+                        <button
+                            onClick={handleExportEmployees}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg shadow-md hover:bg-emerald-700 transition-all text-sm"
+                        >
+                            <Download size={18} /> Export Excel
+                        </button>
+
+                        <button
                             onClick={() => setShowAddModal(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white font-bold rounded-lg shadow-md hover:bg-orange-700 transition-all text-sm"
                         >
@@ -438,13 +556,22 @@ const HRMList = () => {
                                                     <h3 className="font-bold text-slate-900 text-base leading-tight truncate pr-2 group-hover:text-orange-600 transition-colors flex-1">
                                                         {emp.name}
                                                     </h3>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); openEditModal(emp); }}
-                                                        className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors shrink-0"
-                                                        title="Chỉnh sửa"
-                                                    >
-                                                        <MoreHorizontal size={16} />
-                                                    </button>
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openEditModal(emp); }}
+                                                            className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors shrink-0"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <FileText size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openDeleteDialog(emp); }}
+                                                            className="text-gray-400 hover:text-rose-600 hover:bg-rose-50 p-1 rounded transition-colors shrink-0"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide truncate mb-3">
                                                     {emp.role}
@@ -532,9 +659,22 @@ const HRMList = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-                                                        <MoreHorizontal size={18} />
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openEditModal(emp); }}
+                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <FileText size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openDeleteDialog(emp); }}
+                                                            className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -553,6 +693,18 @@ const HRMList = () => {
 
 const EmployeeDetailModal = ({ employee, onClose }: { employee: Employee, onClose: () => void }) => {
     const [activeTab, setActiveTab] = useState('info');
+    const [employeeProjects, setEmployeeProjects] = useState<any[]>([]);
+    const [loadingProjects, setLoadingProjects] = useState(false);
+
+    useEffect(() => {
+        const loadProjects = async () => {
+            setLoadingProjects(true);
+            const projects = await EmployeeService.getEmployeeProjects(employee.id);
+            setEmployeeProjects(projects);
+            setLoadingProjects(false);
+        };
+        loadProjects();
+    }, [employee.id]);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -582,6 +734,7 @@ const EmployeeDetailModal = ({ employee, onClose }: { employee: Employee, onClos
                     <div className="border-b border-gray-200">
                         <div className="flex gap-8">
                             <button onClick={() => setActiveTab('info')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'info' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Thông tin cá nhân</button>
+                            <button onClick={() => setActiveTab('projects')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'projects' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Dự án tham gia</button>
                             <button onClick={() => setActiveTab('timekeeping')} className={`pb-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'timekeeping' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Báo cáo ngày (Daily Report)</button>
                         </div>
                     </div>
@@ -589,6 +742,7 @@ const EmployeeDetailModal = ({ employee, onClose }: { employee: Employee, onClos
 
                 <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
                     {activeTab === 'info' && <EmployeeInfoTab employee={employee} />}
+                    {activeTab === 'projects' && <EmployeeProjectsTab projects={employeeProjects} loading={loadingProjects} />}
                     {activeTab === 'timekeeping' && <TimekeepingTab />}
                 </div>
             </div>
@@ -664,6 +818,64 @@ const EmployeeInfoTab = ({ employee }: { employee: Employee }) => (
                 </div>
             </div>
         </div>
+    </div>
+);
+
+const EmployeeProjectsTab = ({ projects, loading }: { projects: any[], loading: boolean }) => (
+    <div className="space-y-6">
+        {loading ? (
+            <div className="flex justify-center items-center py-12">
+                <Loader2 className="animate-spin text-gray-400" size={32} />
+                <p className="ml-3 text-gray-500">Đang tải dự án...</p>
+            </div>
+        ) : projects.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 border-dashed p-12 text-center">
+                <Folder className="mx-auto text-gray-300 mb-3" size={48} />
+                <p className="text-gray-500">Nhân viên chưa tham gia dự án nào</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 gap-4">
+                {projects.map((pm: any) => (
+                    <div key={pm.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5">
+                        <div className="flex items-start gap-4">
+                            <img
+                                src={pm.project?.thumbnail || 'https://via.placeholder.com/80'}
+                                alt={pm.project?.name}
+                                className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                            />
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 className="font-bold text-gray-800">{pm.project?.name || 'Dự án'}</h4>
+                                        <p className="text-xs text-gray-500 font-mono">{pm.project?.code}</p>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${pm.project?.status === 'Đang thực hiện' ? 'bg-blue-50 text-blue-700' :
+                                            pm.project?.status === 'Hoàn thành' ? 'bg-emerald-50 text-emerald-700' :
+                                                'bg-gray-50 text-gray-700'
+                                        }`}>
+                                        {pm.project?.status}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Vai trò</p>
+                                        <p className="font-medium text-gray-800">{pm.projectRole || pm.role || 'Thành viên'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Phân bổ</p>
+                                        <p className="font-medium text-gray-800">{pm.allocation || 100}%</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Tham gia từ</p>
+                                        <p className="font-medium text-gray-800">{pm.joinedAt ? new Date(pm.joinedAt).toLocaleDateString('vi-VN') : '-'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
     </div>
 );
 

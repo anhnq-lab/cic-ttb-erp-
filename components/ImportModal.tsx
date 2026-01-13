@@ -6,7 +6,7 @@ interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
     onImport: (data: any[]) => Promise<void>;
-    type: 'Project' | 'Contract' | 'Customer' | 'Payment';
+    type: 'Project' | 'Contract' | 'Customer' | 'Payment' | 'Employee';
 }
 
 const TEMPLATES = {
@@ -21,6 +21,21 @@ const TEMPLATES = {
     ],
     Payment: [
         { ContractCode: 'C-001', InvoiceNumber: 'HD001', Description: 'Thanh toán đợt 1', Amount: 100000000, Date: '2025-02-01', Method: 'Transfer' }
+    ],
+    Employee: [
+        {
+            Code: 'CIC-001',
+            Name: 'Nguyễn Văn A',
+            Email: 'nguyenvana@cic.com.vn',
+            Phone: '0909123456',
+            Department: 'Kỹ thuật - BIM',
+            Role: 'Kỹ sư BIM',
+            JoinDate: '2024-01-15',
+            Status: 'Chính thức',
+            DOB: '01/01/1990',
+            Degree: 'Kỹ sư Xây dựng - ĐH Bách Khoa',
+            Skills: 'Revit, AutoCAD, Navisworks'
+        }
     ]
 };
 

@@ -223,6 +223,107 @@ export const EmployeeService = {
         return data.map(mapEmployeeFromDB);
     },
 
+    // Bulk Create Employees (for Excel Import)
+    bulkCreateEmployees: async (employees: Omit<Employee, 'id'>[]): Promise<{ success: Employee[], failed: { employee: any, error: string }[] }> => {
+        const success: Employee[] = [];
+        const failed: { employee: any, error: string }[] = [];
+
+        for (const emp of employees) {
+            try {
+                const created = await EmployeeService.createEmployee(emp);
+                if (created) {
+                    success.push(created);
+                } else {
+                    failed.push({ employee: emp, error: 'Failed to create employee' });
+                }
+            } catch (error: any) {
+                failed.push({ employee: emp, error: error.message || 'Unknown error' });
+            }
+        }
+
+        return { success, failed };
+    },
+
+    // Export Employees to Excel format
+    exportEmployeesToExcelData: async (): Promise<any[]> => {
+        const employees = await EmployeeService.getEmployees();
+        return employees.map(e => ({
+            'Mã NV': e.code,
+            'Họ và tên': e.name,
+            'Email': e.email,
+            'Số điện thoại': e.phone,
+            'Phòng ban': e.department,
+            'Vị trí': e.role,
+            'Ngày vào làm': e.joinDate,
+            'Trạng thái': e.status,
+            'Ngày sinh': e.dob || '',
+            'Bằng cấp': e.degree || '',
+            'Chứng chỉ': e.certificates || '',
+            'Kỹ năng': (e.skills || []).join(', ')
+        }));
+    },
+
+    // Delete with Validation (check if employee is in any projects)
+    deleteEmployeeWithValidation: async (id: string): Promise<{ success: boolean, message?: string, projectCount?: number }> => {
+        // Check if employee is assigned to any projects
+        const { data: projectMembers, error: checkError } = await supabase
+            .from('project_members')
+            .select('id')
+            .eq('employee_id', id);
+
+        if (checkError) {
+            return { success: false, message: 'Error checking project assignments' };
+        }
+
+        const projectCount = projectMembers?.length || 0;
+
+        if (projectCount > 0) {
+            return {
+                success: false,
+                message: `Nhân viên đang tham gia ${projectCount} dự án. Vui lòng xóa khỏi dự án trước hoặc chuyển trạng thái "Nghỉ việc".`,
+                projectCount
+            };
+        }
+
+        // Safe to delete
+        const deleted = await EmployeeService.deleteEmployee(id);
+        return {
+            success: deleted,
+            message: deleted ? 'Xóa nhân viên thành công' : 'Không thể xóa nhân viên'
+        };
+    },
+
+    // Get Employee's Projects
+    getEmployeeProjects: async (employeeId: string): Promise<any[]> => {
+        const { data, error } = await supabase
+            .from('project_members')
+            .select(`
+                id,
+                role,
+                joined_at,
+                project_role,
+                allocation,
+                projects (
+                    id,
+                    code,
+                    name,
+                    status,
+                    thumbnail
+                )
+            `)
+            .eq('employee_id', employeeId);
+
+        if (error || !data) return [];
+        return data.map(pm => ({
+            id: pm.id,
+            role: pm.role,
+            projectRole: pm.project_role,
+            allocation: pm.allocation,
+            joinedAt: pm.joined_at,
+            project: pm.projects
+        }));
+    },
+
     // Subscribe (Stub for now)
     subscribeToEmployees: (callback: () => void) => {
         // Realtime subscription logic would go here
