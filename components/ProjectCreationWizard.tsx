@@ -48,17 +48,31 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
-            // 1. Create Project
+            // Create Project (will auto-generate tasks)
             const newProject = await ProjectService.createProject(formData as Project);
 
-            if (newProject && selectedTemplate) {
-                // 2. Generate WBS from Template
-                await ProjectService.createTasksFromTemplate(newProject.id, selectedTemplate);
+            if (newProject) {
+                console.log('✅ Project created with auto-generated tasks!');
                 onSuccess(newProject);
                 onClose();
+                // Reset form
+                setStep(1);
+                setFormData({
+                    name: '',
+                    code: '',
+                    client: '',
+                    manager: '',
+                    capitalSource: 'NonStateBudget',
+                    status: 'Lập kế hoạch' as any,
+                    progress: 0,
+                    budget: 0
+                });
+            } else {
+                alert('Không thể tạo dự án. Vui lòng kiểm tra console.');
             }
         } catch (error) {
             console.error("Creation failed", error);
+            alert(`Lỗi: ${error}`);
         } finally {
             setIsLoading(false);
         }
@@ -87,16 +101,11 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                     <div className="flex items-center justify-center gap-4">
                         <div className={`flex items-center gap-2 ${step >= 1 ? 'text-orange-600 font-bold' : 'text-gray-400'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step >= 1 ? 'bg-orange-100' : 'bg-gray-200'}`}>1</div>
-                            Chọn Template
+                            Thông tin Dự án
                         </div>
                         <div className="w-12 h-0.5 bg-gray-200"></div>
                         <div className={`flex items-center gap-2 ${step >= 2 ? 'text-orange-600 font-bold' : 'text-gray-400'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step >= 2 ? 'bg-orange-100' : 'bg-gray-200'}`}>2</div>
-                            Thông tin Dự án
-                        </div>
-                        <div className="w-12 h-0.5 bg-gray-200"></div>
-                        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-orange-600 font-bold' : 'text-gray-400'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step >= 3 ? 'bg-orange-100' : 'bg-gray-200'}`}>3</div>
                             Xác nhận
                         </div>
                     </div>
@@ -105,33 +114,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-8">
                     {step === 1 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {templates.map(tpl => (
-                                <div
-                                    key={tpl.id}
-                                    onClick={() => setSelectedTemplate(tpl)}
-                                    className={`border-2 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all relative ${selectedTemplate?.id === tpl.id ? 'border-orange-500 bg-orange-50' : 'border-gray-100 hover:border-orange-200'}`}
-                                >
-                                    {selectedTemplate?.id === tpl.id && (
-                                        <div className="absolute top-4 right-4 bg-orange-500 text-white p-1 rounded-full"><Check size={16} /></div>
-                                    )}
-                                    <div className="w-12 h-12 bg-white rounded-lg shadow-sm flex items-center justify-center mb-4 text-orange-600">
-                                        <Layers size={24} />
-                                    </div>
-                                    <h3 className="font-bold text-gray-800 text-lg mb-2">{tpl.name}</h3>
-                                    <span className="text-xs font-bold uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-1 rounded">{tpl.type}</span>
-                                    <p className="text-sm text-gray-500 mt-3 line-clamp-2">{tpl.description}</p>
-                                </div>
-                            ))}
-                            {templates.length === 0 && (
-                                <div className="col-span-2 text-center py-10 text-gray-400">
-                                    <p>Chưa có Template nào. Vui lòng chạy Seed Data.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {step === 2 && (
                         <div className="grid grid-cols-2 gap-6">
                             <div className="col-span-2">
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Tên Dự án <span className="text-red-500">*</span></label>
@@ -140,7 +122,7 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="VD: Chung cư Cao cấp VinHome..."
+                                    placeholder="VD: Khu Công nghiệp Trấn Yên"
                                 />
                             </div>
                             <div>
@@ -150,7 +132,7 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                                     value={formData.code}
                                     onChange={e => setFormData({ ...formData, code: e.target.value })}
-                                    placeholder="VD: 25099"
+                                    placeholder="VD: PRJ-001"
                                 />
                             </div>
                             <div>
@@ -164,18 +146,17 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Nguồn vốn</label>
-                                <select
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Địa điểm</label>
+                                <input
+                                    type="text"
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                                    value={formData.capitalSource}
-                                    onChange={e => setFormData({ ...formData, capitalSource: e.target.value as any })}
-                                >
-                                    <option value="StateBudget">Vốn Ngân Sách (Nhà nước)</option>
-                                    <option value="NonStateBudget">Vốn Ngoài Ngân Sách (Tư nhân)</option>
-                                </select>
+                                    value={formData.location}
+                                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                    placeholder="VD: Yên Bái"
+                                />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Quản trị dự án (PM)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Quản lý dự án (PM)</label>
                                 <input
                                     type="text"
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
@@ -184,27 +165,56 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                     placeholder="Tên PM..."
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Ngân sách (VND)</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                                    value={formData.budget}
+                                    onChange={e => setFormData({ ...formData, budget: Number(e.target.value) })}
+                                    placeholder="500000000"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Deadline</label>
+                                <input
+                                    type="date"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                                    value={formData.deadline}
+                                    onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+                                />
+                            </div>
                         </div>
                     )}
 
-                    {step === 3 && (
+                    {step === 2 && (
                         <div className="text-center py-8">
                             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 animate-bounce-subtle">
                                 <Check size={40} />
                             </div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-2">Sẵn sàng khởi tạo!</h3>
                             <p className="text-gray-500 max-w-md mx-auto mb-8">
-                                Hệ thống sẽ tạo dự án <strong>{formData.name}</strong> và tự động sinh ra cấu trúc công việc (WBS) dựa trên template <strong>{selectedTemplate?.name}</strong>.
+                                Hệ thống sẽ tạo dự án <strong>{formData.name}</strong> và tự động sinh ra <strong>20 công việc</strong> theo quy trình BIM chuẩn.
                             </p>
 
                             <div className="bg-orange-50 p-6 rounded-xl border border-orange-100 max-w-lg mx-auto text-left">
-                                <h4 className="font-bold text-orange-800 mb-2 uppercase text-xs tracking-wider">Review Cấu trúc WBS:</h4>
+                                <h4 className="font-bold text-orange-800 mb-2 uppercase text-xs tracking-wider">Các giai đoạn tự động:</h4>
                                 <ul className="space-y-2">
-                                    {selectedTemplate?.phases.map((p, i) => (
-                                        <li key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                            <ChevronRight size={14} className="text-orange-500" /> {p.name} <span className="text-gray-400 text-xs">({p.tasks.length} tasks)</span>
-                                        </li>
-                                    ))}
+                                    <li className="text-sm text-gray-700 flex items-center gap-2">
+                                        <ChevronRight size={14} className="text-orange-500" /> Xúc tiến Dự án <span className="text-gray-400 text-xs">(3 tasks)</span>
+                                    </li>
+                                    <li className="text-sm text-gray-700 flex items-center gap-2">
+                                        <ChevronRight size={14} className="text-orange-500" /> Báo giá <span className="text-gray-400 text-xs">(3 tasks)</span>
+                                    </li>
+                                    <li className="text-sm text-gray-700 flex items-center gap-2">
+                                        <ChevronRight size={14} className="text-orange-500" /> Chuẩn bị Triển khai <span className="text-gray-400 text-xs">(3 tasks)</span>
+                                    </li>
+                                    <li className="text-sm text-gray-700 flex items-center gap-2">
+                                        <ChevronRight size={14} className="text-orange-500" /> Triển khai BIM <span className="text-gray-400 text-xs">(5 tasks)</span>
+                                    </li>
+                                    <li className="text-sm text-gray-700 flex items-center gap-2">
+                                        <ChevronRight size={14} className="text-orange-500" /> Bàn giao <span className="text-gray-400 text-xs">(6 tasks)</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -219,10 +229,10 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                         </button>
                     ) : <div></div>}
 
-                    {step < 3 ? (
+                    {step < 2 ? (
                         <button
                             onClick={handleNext}
-                            disabled={step === 1 && !selectedTemplate}
+                            disabled={!formData.name || !formData.code}
                             className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             Tiếp tục <ArrowRight size={18} />
