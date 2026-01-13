@@ -1,68 +1,181 @@
+import { supabase } from './supabaseClient';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { PROJECT_TEMPLATES } from '../constants';
 import { SAMPLE_TASKS } from '../constants_data/tasks';
 
-// In-memory store for demo, initialized with SAMPLE_TASKS
-let MOCK_STORE: Record<string, Task[]> = {};
-// Initialize store with sample tasks grouped by projectId
-SAMPLE_TASKS.forEach(task => {
-  if (!MOCK_STORE[task.projectId]) {
-    MOCK_STORE[task.projectId] = [];
-  }
-  MOCK_STORE[task.projectId].push(task);
+// Mappers: DB snake_case ↔ App camelCase
+const mapTaskFromDB = (t: any): Task => ({
+  id: t.id,
+  code: t.code || `TASK-${t.id.substring(0, 8)}`,
+  name: t.name,
+  projectId: t.project_id,
+  phase: t.phase,
+  assignee: t.assignee_id ? {
+    id: t.assignee_id,
+    name: t.assignee_name || 'Unassigned',
+    avatar: t.assignee_avatar || '',
+    role: t.assignee_role || 'Staff'
+  } : {
+    name: 'Unassigned',
+    avatar: '',
+    role: 'Staff'
+  },
+  reviewer: t.reviewer,
+  status: t.status,
+  priority: t.priority,
+  startDate: t.start_date,
+  dueDate: t.due_date || t.end_date, // Support both column names
+  progress: t.progress || 0,
+  tags: t.tags || [],
+  comments: t.comments || [],
+  attachments: t.attachments || [],
+  subtasks: t.subtasks || [],
+  checklistLogs: t.checklist_logs || [],
+  deliverables: t.deliverables || []
 });
 
+const mapTaskToDB = (t: Partial<Task>) => {
+  const payload: any = {
+    code: t.code,
+    name: t.name,
+    project_id: t.projectId,
+    phase: t.phase,
+    assignee_id: t.assignee?.id,
+    assignee_name: t.assignee?.name,
+    assignee_avatar: t.assignee?.avatar,
+    assignee_role: t.assignee?.role,
+    reviewer: t.reviewer,
+    status: t.status,
+    priority: t.priority,
+    start_date: t.startDate,
+    due_date: t.dueDate,
+    progress: t.progress,
+    tags: t.tags,
+    comments: t.comments,
+    attachments: t.attachments,
+    subtasks: t.subtasks,
+    checklist_logs: t.checklistLogs,
+    deliverables: t.deliverables
+  };
+  // Remove undefined
+  Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+  return payload;
+};
+
 export const realtimeStore = {
-  // 1. Get Tasks (Mock Only)
+  // Get Tasks by Project
   getTasks: async (projectId: string): Promise<Task[]> => {
-    // Return from in-memory mock store
-    return MOCK_STORE[projectId] || [];
+    if (!supabase) {
+      console.warn('Supabase not configured. Using fallback.');
+      return SAMPLE_TASKS.filter(t => t.projectId === projectId);
+    }
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching tasks:', error);
+      return SAMPLE_TASKS.filter(t => t.projectId === projectId);
+    }
+    return data.map(mapTaskFromDB);
   },
 
-  // 2. Update Task Status (Mock Only)
+  // Update Task Status (Quick action)
   updateTaskStatus: async (taskId: string, newStatus: TaskStatus) => {
-    for (const pid in MOCK_STORE) {
-      const tIdx = MOCK_STORE[pid].findIndex(t => t.id === taskId);
-      if (tIdx > -1) {
-        MOCK_STORE[pid][tIdx].status = newStatus;
-        break;
-      }
-    }
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', taskId);
+
+    if (error) console.error('Error updating task status:', error);
   },
 
-  // 2.1 Create Task (Mock Only)
+  // Create Task
   createTask: async (task: Task): Promise<Task | null> => {
-    if (!MOCK_STORE[task.projectId]) MOCK_STORE[task.projectId] = [];
-    MOCK_STORE[task.projectId].push(task);
-    return task;
+    if (!supabase) {
+      console.warn('Supabase not configured.');
+      return task;
+    }
+
+    const payload = mapTaskToDB(task);
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating task:', error);
+      return null;
+    }
+    return mapTaskFromDB(data);
   },
 
-  // 2.2 Update Task (Mock Only)
+  // Update Task
   updateTask: async (taskId: string, updates: Partial<Task>): Promise<void> => {
-    for (const pid in MOCK_STORE) {
-      const tIdx = MOCK_STORE[pid].findIndex(t => t.id === taskId);
-      if (tIdx > -1) {
-        MOCK_STORE[pid][tIdx] = { ...MOCK_STORE[pid][tIdx], ...updates };
-        break;
-      }
-    }
+    if (!supabase) return;
+
+    const payload = mapTaskToDB(updates);
+    payload.updated_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(payload)
+      .eq('id', taskId);
+
+    if (error) console.error('Error updating task:', error);
   },
 
-  // 2.3 Delete Task (Mock Only)
+  // Delete Task
   deleteTask: async (taskId: string): Promise<void> => {
-    for (const pid in MOCK_STORE) {
-      MOCK_STORE[pid] = MOCK_STORE[pid].filter(t => t.id !== taskId);
-    }
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) console.error('Error deleting task:', error);
   },
 
-  // 3. Subscribe (Mock Stub)
+  // Subscribe to Realtime Updates
   subscribe: (projectId: string, callback: () => void) => {
-    // No-op for mock
-    return () => { };
+    if (!supabase) {
+      console.warn('Supabase not configured. Realtime disabled.');
+      return () => { };
+    }
+
+    const channel = supabase
+      .channel(`tasks:project_id=eq.${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `project_id=eq.${projectId}`
+        },
+        (payload) => {
+          console.log('Realtime task update:', payload);
+          callback();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
-  // 4. Unsubscribe (Mock Stub)
+  // Unsubscribe
   unsubscribe: async (channel: any) => {
-    // No-op
+    if (channel && supabase) {
+      await supabase.removeChannel(channel);
+    }
   }
 };
+
