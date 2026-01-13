@@ -8,7 +8,7 @@ const mapTaskFromDB = (t: any): Task => ({
   code: t.code || `TASK-${t.id.substring(0, 8)}`,
   name: t.name,
   projectId: t.project_id,
-  phase: t.phase,
+  phase: undefined, // Not in DB yet
   assignee: t.assignee_id ? {
     id: t.assignee_id,
     name: t.assignee_name || 'Unassigned',
@@ -19,18 +19,14 @@ const mapTaskFromDB = (t: any): Task => ({
     avatar: '',
     role: 'Staff'
   },
-  reviewer: t.reviewer,
+  reviewer: t.reviewer_id,
   status: t.status,
   priority: t.priority,
   startDate: t.start_date,
-  dueDate: t.due_date || t.end_date, // Support both column names
+  dueDate: t.due_date,
   progress: t.progress || 0,
-  tags: t.tags || [],
-  comments: t.comments || [],
-  attachments: t.attachments || [],
-  subtasks: t.subtasks || [],
-  checklistLogs: t.checklist_logs || [],
-  deliverables: t.deliverables || []
+  tags: t.tags || []
+  // Optional fields not in DB schema yet - will be undefined
 });
 
 const mapTaskToDB = (t: Partial<Task>) => {
@@ -38,23 +34,17 @@ const mapTaskToDB = (t: Partial<Task>) => {
     code: t.code,
     name: t.name,
     project_id: t.projectId,
-    phase: t.phase,
     assignee_id: t.assignee?.id,
     assignee_name: t.assignee?.name,
     assignee_avatar: t.assignee?.avatar,
     assignee_role: t.assignee?.role,
-    reviewer: t.reviewer,
+    reviewer_id: t.reviewer,
     status: t.status,
     priority: t.priority,
     start_date: t.startDate,
     due_date: t.dueDate,
     progress: t.progress,
-    tags: t.tags,
-    comments: t.comments,
-    attachments: t.attachments,
-    subtasks: t.subtasks,
-    checklist_logs: t.checklistLogs,
-    deliverables: t.deliverables
+    tags: t.tags
   };
   // Remove undefined
   Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
