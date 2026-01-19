@@ -109,7 +109,76 @@ export const ProjectService = {
             console.error('Error creating project:', error);
             return null;
         }
-        return mapProjectFromDB(data);
+
+        const newProject = mapProjectFromDB(data);
+
+        // --- AUTOMATIC TASK GENERATION ---
+        try {
+            await ProjectService.generateTasksFromTemplate(newProject.id, project.capitalSource || 'NonStateBudget', project.deadline);
+        } catch (taskError) {
+            console.error('Error generating automatic tasks:', taskError);
+            // Don't fail the project creation if task gen fails, but log it
+        }
+
+        return newProject;
+    },
+
+    generateTasksFromTemplate: async (projectId: string, capitalSource: string, projectStartDate?: string) => {
+        // 1. Fetch Templates
+        const { data: templates, error } = await supabase
+            .from('task_templates')
+            .select('*')
+            .eq('capital_source', capitalSource)
+            .order('code', { ascending: true }); // Ensure order
+
+        if (error || !templates || templates.length === 0) {
+            console.log('No templates found for', capitalSource);
+            return;
+        }
+
+        const startDate = projectStartDate ? new Date(projectStartDate) : new Date();
+
+        // 2. Prepare Task Payloads
+        const tasksToInsert = templates.map(t => {
+            // Calculate Dates
+            const taskStart = new Date(startDate);
+            taskStart.setDate(startDate.getDate() + (t.offset_days || 0));
+
+            const taskDue = new Date(taskStart);
+            taskDue.setDate(taskStart.getDate() + (t.duration_days || 1));
+
+            // Determine Assignee Role (Find 'R' in RACI)
+            let assigneeRole = 'Staff';
+            if (t.raci_matrix) {
+                const raci = t.raci_matrix as Record<string, string>;
+                const responsibleRole = Object.keys(raci).find(role => raci[role]?.includes('R'));
+                if (responsibleRole) assigneeRole = responsibleRole;
+            }
+
+            return {
+                project_id: projectId,
+                code: t.code,
+                name: t.name,
+                phase: t.phase,
+                assignee_role: assigneeRole,
+                assignee_name: 'Unassigned', // To be assigned later
+                status: 'Mở', // TaskStatus.OPEN
+                priority: 'Trung bình', // TaskPriority.MEDIUM
+                start_date: taskStart.toISOString(),
+                due_date: taskDue.toISOString(),
+                progress: 0
+            };
+        });
+
+        // 3. Insert Tasks
+        const { error: insertError } = await supabase
+            .from('tasks')
+            .insert(tasksToInsert);
+
+        if (insertError) {
+            console.error('Failed to insert template tasks:', insertError);
+            throw insertError;
+        }
     },
 
     updateProject: async (id: string, updates: Partial<Project>): Promise<Project | null> => {
@@ -132,6 +201,9 @@ export const ProjectService = {
     },
 
     deleteProject: async (id: string): Promise<boolean> => {
+        // Delete related tasks first (if cascade not set)
+        await supabase.from('tasks').delete().eq('project_id', id);
+
         const { error } = await supabase
             .from('projects')
             .delete()
