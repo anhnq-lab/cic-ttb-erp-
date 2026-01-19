@@ -146,6 +146,49 @@ const ProjectOverviewTab: React.FC<ProjectOverviewTabProps> = ({ project, tasks 
 
                 {/* 3. Right Column: Charts & Quick Actions */}
                 <div className="space-y-6">
+                    {/* Project Information Card */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase mb-4 border-b border-gray-100 pb-2">
+                            Thông tin dự án
+                        </h3>
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mã dự án</p>
+                                <p className="text-sm font-bold text-slate-700">{project.code}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tên dự án</p>
+                                <p className="text-sm font-semibold text-slate-700">{project.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Địa điểm</p>
+                                <p className="text-sm font-medium text-slate-700">{project.location}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Nguồn vốn</p>
+                                    <p className="text-sm font-medium text-slate-700">
+                                        {project.capitalSource === 'StateBudget' ? 'Ngân sách' : 'Ngoài NS'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Trạng thái</p>
+                                    <p className="text-sm font-medium text-slate-700">{project.status}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Khách hàng</p>
+                                <p className="text-sm font-medium text-slate-700">{project.client}</p>
+                            </div>
+                            {project.deadline && (
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Deadline</p>
+                                    <p className="text-sm font-medium text-slate-700">{project.deadline}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Progress Chart */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col items-center">
                         <h3 className="text-sm font-bold text-slate-800 uppercase mb-4 self-start w-full border-b border-gray-100 pb-2">

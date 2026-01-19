@@ -31,7 +31,6 @@ import TaskModal from '../components/TaskModal';
 import ProjectCostTab from '../components/ProjectCostTab';
 import ProjectTimesheetTab from '../components/ProjectTimesheetTab';
 import ProjectOverviewTab from '../components/ProjectOverviewTab';
-import ProjectLegalTab from '../components/ProjectLegalTab';
 import ProjectConstructionTab from '../components/ProjectConstructionTab';
 import ProjectReportsTab from '../components/ProjectReportsTab';
 import ProjectContractsTab from '../components/ProjectContractsTab';
@@ -405,7 +404,6 @@ const ProjectDetail = () => {
             <div className="sticky top-2 z-40 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-lg p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
               {[
                 { id: 'overview', label: 'Dashboard', icon: Layout },
-                { id: 'info', label: 'Pháp lý', icon: Info },
                 { id: 'plan', label: 'Kế hoạch', icon: Calendar },
                 { id: 'timesheet', label: 'Chấm công', icon: Clock },
                 { id: 'contracts', label: 'Hợp đồng', icon: FileCheck },
@@ -436,7 +434,6 @@ const ProjectDetail = () => {
                 {activeTab === 'overview' && (
                   <ProjectOverviewTab project={project} tasks={tasks} members={members} contracts={contracts} />
                 )}
-                {activeTab === 'info' && <ProjectLegalTab project={project} />}
                 {activeTab === 'plan' && <ProjectPlanTab project={project} tasks={tasks} />}
                 {activeTab === 'timesheet' && <ProjectTimesheetTab projectId={id || ''} />}
                 {activeTab === 'contracts' && <ProjectContractsTab project={project} />}
