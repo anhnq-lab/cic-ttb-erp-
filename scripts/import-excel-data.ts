@@ -23,6 +23,23 @@ function parseExcelDate(serial: number | string): string | null {
     return date_info.toISOString().split('T')[0];
 }
 
+// Helper to map capital source from NguonVon
+function mapCapitalSource(nguonVon: string): string {
+    if (!nguonVon) return 'NonStateBudget';
+    const lower = nguonVon.toLowerCase();
+    if (lower.includes('ngân sách') || lower.includes('nhà nước') || lower.includes('đầu tư công')) {
+        return 'StateBudget';
+    }
+    return 'NonStateBudget';
+}
+
+// Available employees for random assignment
+const AVAILABLE_MANAGERS = ['NV001', 'NV002', 'NV003', 'NV004', 'NV005', 'NV006', 'NV015'];
+
+function assignRandomManager(): string {
+    return AVAILABLE_MANAGERS[Math.floor(Math.random() * AVAILABLE_MANAGERS.length)];
+}
+
 async function checkTablesExist() {
     const { error } = await supabase.from('contracts').select('count', { count: 'exact', head: true });
     if (error && error.code === '42P01') { // undefined_table
@@ -64,9 +81,11 @@ async function importData() {
         code: row.MaDuAn ? String(row.MaDuAn) : (row.ID_DuAn ? String(row.ID_DuAn) : `GEN-${Math.random()}`),
         name: row.TenDuAn,
         status: mapProjectStatus(row.GiaiDoan),
-        client: row.ChuDauTu, // This seems to be an ID, but putting in client text for now
-        location: null, // Not in simple sheet
-        thumbnail: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=2070&auto=format&fit=crop', // Default
+        client: row.ChuDauTu,
+        location: row.DiaDiem || null,
+        capital_source: mapCapitalSource(row.NguonVon),
+        manager_id: assignRandomManager(),
+        thumbnail: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=2070&auto=format&fit=crop',
         description: row.PhamViCongViec
     })).filter(p => p.id); // Must have ID
 
