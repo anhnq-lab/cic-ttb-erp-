@@ -32,10 +32,36 @@ const LoginPage: React.FC = () => {
         }
     }, []);
 
-    const handleAutoFill = () => {
-        setEmail('admin@cic.com.vn');
-        setPassword('admin123');
-        setMessage('Đã điền thông tin tài khoản Admin mẫu.');
+    const handleAutoFill = async () => {
+        const autoEmail = 'admin@cic.com.vn';
+        const autoPass = '123'; // Trying 123 as seen in constants.ts
+        setEmail(autoEmail);
+        setPassword(autoPass);
+        setRememberMe(true);
+        setMessage('🚀 Đang đăng nhập tự động...');
+
+        // Use a small timeout to allow UI to update then sign in
+        setTimeout(async () => {
+            const { error: authError } = await signIn(autoEmail, autoPass);
+            if (authError) {
+                // Try admin123 as fallback
+                const fallbackPass = 'admin123';
+                setPassword(fallbackPass);
+                const { error: fallbackError } = await signIn(autoEmail, fallbackPass);
+                if (fallbackError) {
+                    setError('Không thể đăng nhập tự động. Vui lòng kiểm tra lại mật khẩu.');
+                    setMessage('');
+                } else {
+                    localStorage.setItem('remember_email', autoEmail);
+                    localStorage.setItem('remember_password', fallbackPass);
+                    navigate('/');
+                }
+            } else {
+                localStorage.setItem('remember_email', autoEmail);
+                localStorage.setItem('remember_password', autoPass);
+                navigate('/');
+            }
+        }, 500);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
