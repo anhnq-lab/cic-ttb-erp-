@@ -6,7 +6,7 @@ import {
   MapPin, Scale, Briefcase, Info, BadgeCheck, Gavel, TrendingUp, CreditCard,
   MessageSquareWarning, Package, X, ChevronRight, FileCheck,
   Columns, Filter, Plus, User as UserIcon, Building2, Award, Ruler,
-  ArrowRightCircle, ArrowLeftCircle, Loader, BarChart3, Box, Layout
+  ArrowRightCircle, ArrowLeftCircle, Loader, BarChart3, Box, Layout, Printer
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
@@ -33,6 +33,7 @@ import ProjectTimesheetTab from '../components/ProjectTimesheetTab';
 import ProjectOverviewTab from '../components/ProjectOverviewTab';
 import ProjectLegalTab from '../components/ProjectLegalTab';
 import ProjectConstructionTab from '../components/ProjectConstructionTab';
+import ProjectReportsTab from '../components/ProjectReportsTab';
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (value: number | undefined) => {
@@ -390,7 +391,7 @@ const ProjectDetail = () => {
                       <button onClick={openCreateTask} className="flex-1 py-2.5 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-100 transition-all active:scale-95 flex items-center justify-center gap-2">
                         <Plus size={14} /> Tạo Task
                       </button>
-                      <button className="flex-1 py-2.5 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
+                      <button onClick={() => setActiveTab('reports')} className="flex-1 py-2.5 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
                         <FileText size={14} /> Report
                       </button>
                     </div>
@@ -411,6 +412,7 @@ const ProjectDetail = () => {
                 { id: 'cost', label: 'Tài chính', icon: DollarSign },
                 { id: 'model', label: 'BIM 3D', icon: Box },
                 { id: 'production', label: 'Sản xuất', icon: BarChart3 },
+                { id: 'reports', label: 'Báo cáo', icon: Printer },
                 { id: 'documents', label: 'Kho lưu trữ', icon: Layers },
               ].map((tab) => (
                 <button
@@ -454,6 +456,7 @@ const ProjectDetail = () => {
                 {activeTab === 'cost' && <ProjectCostTab projectId={id || ''} />}
                 {activeTab === 'model' && <BIMModelViewer project={project} />}
                 {activeTab === 'production' && <ProjectConstructionTab project={project} />}
+                {activeTab === 'reports' && <ProjectReportsTab project={project} />}
                 {activeTab === 'documents' && <ProjectDocuments />}
               </div>
             </div>
