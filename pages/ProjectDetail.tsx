@@ -289,11 +289,11 @@ const ProjectDetail = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <Header title="Quản lý Dự án BIM" breadcrumb={`Dự án / ${project.code}`} />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50/50">
-          <div className="max-w-[95%] mx-auto space-y-8">
+        <main className="flex-1 overflow-y-auto p-2 md:p-4 custom-scrollbar bg-slate-50/50">
+          <div className="max-w-[98%] mx-auto space-y-4">
 
-            {/* --- ULTIMATE PROJECT HERO --- */}
-            <div className="group relative rounded-[2.5rem] overflow-hidden border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] bg-slate-900 min-h-[320px] animate-fade-in-up">
+            {/* --- COMPACT PROJECT HERO --- */}
+            <div className="group relative rounded-2xl overflow-hidden border border-white shadow-lg bg-slate-900 min-h-[180px] animate-fade-in-up">
               {/* Background Layers */}
               <div className="absolute inset-0 z-0">
                 <img
@@ -308,7 +308,7 @@ const ProjectDetail = () => {
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] animate-pulse"></div>
               <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-500/10 rounded-full blur-[100px]"></div>
 
-              <div className="relative z-10 p-8 md:p-12 h-full flex flex-col justify-between">
+              <div className="relative z-10 p-4 md:p-6 h-full flex flex-col justify-between">
                 {/* Top Row: Context & Badges */}
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col gap-4">
@@ -340,42 +340,42 @@ const ProjectDetail = () => {
                 </div>
 
                 {/* Bottom Row: Title & Key Stats */}
-                <div className="mt-12 flex flex-col lg:flex-row justify-between items-end gap-12">
+                <div className="mt-4 flex flex-col lg:flex-row justify-between items-end gap-6">
                   <div className="flex-1 max-w-2xl text-left">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-1 bg-orange-500 rounded-full"></div>
                       <span className="text-orange-400 font-black text-xs uppercase tracking-widest">Project #{project.code}</span>
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight mb-6 drop-shadow-2xl">
+                    <h1 className="text-2xl md:text-3xl font-black text-white leading-tight tracking-tight mb-3 drop-shadow-2xl">
                       {project.name}
                     </h1>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div className="space-y-1">
-                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Vị trí xây dựng</p>
-                        <p className="text-white font-bold flex items-center gap-2"><MapPin size={14} className="text-rose-500" /> {project.location || 'Chưa rõ'}</p>
+                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Vị trí xây dựng</p>
+                        <p className="text-white text-sm font-bold flex items-center gap-2"><MapPin size={12} className="text-rose-500" /> {project.location || 'Chưa rõ'}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Ban điều hành</p>
-                        <p className="text-white font-bold flex items-center gap-2"><Users size={14} className="text-indigo-400" /> {members.length} Nhân sự</p>
+                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Ban điều hành</p>
+                        <p className="text-white text-sm font-bold flex items-center gap-2"><Users size={12} className="text-indigo-400" /> {members.length} Nhân sự</p>
                       </div>
                       <div className="space-y-1 hidden md:block">
-                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Giai đoạn hiện tại</p>
-                        <p className="text-white font-bold flex items-center gap-2"><Layers size={14} className="text-emerald-400" /> Phối hợp BIM</p>
+                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Giai đoạn hiện tại</p>
+                        <p className="text-white text-sm font-bold flex items-center gap-2"><Layers size={12} className="text-emerald-400" /> Phối hợp BIM</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="w-full lg:w-96 space-y-6">
-                    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-                      <div className="flex justify-between items-end mb-4">
+                  <div className="w-full lg:w-80 space-y-3">
+                    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl">
+                      <div className="flex justify-between items-end mb-3">
                         <div className="text-left">
-                          <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1">Tiến độ hoàn thành</p>
-                          <div className="text-4xl font-black text-white italic">{project.progress}%</div>
+                          <p className="text-[9px] text-white/40 font-black uppercase tracking-widest mb-1">Tiến độ hoàn thành</p>
+                          <div className="text-3xl font-black text-white italic">{project.progress}%</div>
                         </div>
-                        <TrendingUp size={32} className="text-orange-500 animate-bounce" />
+                        <TrendingUp size={24} className="text-orange-500 animate-bounce" />
                       </div>
-                      <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full transition-all duration-[2000ms] relative"
                           style={{ width: `${project.progress}%` }}
@@ -384,12 +384,12 @@ const ProjectDetail = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <button onClick={openCreateTask} className="flex-1 py-4 bg-white text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-100 transition-all active:scale-95 flex items-center justify-center gap-2">
-                        <Plus size={16} /> Tạo Task
+                    <div className="flex gap-2">
+                      <button onClick={openCreateTask} className="flex-1 py-2.5 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-100 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <Plus size={14} /> Tạo Task
                       </button>
-                      <button className="flex-1 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
-                        <FileText size={16} /> Report
+                      <button className="flex-1 py-2.5 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
+                        <FileText size={14} /> Report
                       </button>
                     </div>
                   </div>
@@ -397,8 +397,8 @@ const ProjectDetail = () => {
               </div>
             </div>
 
-            {/* --- PREMIUM TAB NAVIGATION --- */}
-            <div className="sticky top-4 z-40 bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 shadow-xl p-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {/* --- COMPACT TAB NAVIGATION --- */}
+            <div className="sticky top-2 z-40 bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-lg p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
               {[
                 { id: 'overview', label: 'Dashboard', icon: Layout },
                 { id: 'info', label: 'Pháp lý', icon: Info },
@@ -414,13 +414,13 @@ const ProjectDetail = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
                     ${activeTab === tab.id
-                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 -translate-y-0.5'
+                      ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                       : 'text-gray-400 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                 >
-                  <tab.icon size={16} className={activeTab === tab.id ? 'text-orange-400' : ''} />
+                  <tab.icon size={14} className={activeTab === tab.id ? 'text-orange-400' : ''} />
                   {tab.label}
                 </button>
               ))}
