@@ -17,8 +17,26 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+
+    // Load saved credentials on mount
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem('remember_email');
+        const savedPassword = localStorage.getItem('remember_password');
+        if (savedEmail && savedPassword) {
+            setEmail(savedEmail);
+            setPassword(savedPassword);
+            setRememberMe(true);
+        }
+    }, []);
+
+    const handleAutoFill = () => {
+        setEmail('admin@cic.com.vn');
+        setPassword('admin123');
+        setMessage('Đã điền thông tin tài khoản Admin mẫu.');
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,6 +48,14 @@ const LoginPage: React.FC = () => {
             if (authError) {
                 setError(authError.message);
             } else {
+                // Save credentials if rememberMe is checked
+                if (rememberMe) {
+                    localStorage.setItem('remember_email', email);
+                    localStorage.setItem('remember_password', password);
+                } else {
+                    localStorage.removeItem('remember_email');
+                    localStorage.removeItem('remember_password');
+                }
                 navigate('/');
             }
         } else {
@@ -59,7 +85,7 @@ const LoginPage: React.FC = () => {
                         <Building2 size={32} className="text-white" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">CIC TTB ERP</h1>
-                    <p className="text-gray-400">Hệ thống Quản lý Dự án & Tài chính</p>
+                    <p className="text-gray-400 font-medium">Hệ thống Quản trị số</p>
                 </div>
 
                 {/* Card */}
@@ -153,6 +179,28 @@ const LoginPage: React.FC = () => {
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Remember Me & Quick Fill */}
+                        <div className="flex items-center justify-between text-sm">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="w-4 h-4 rounded border-white/20 bg-white/10 text-orange-500 focus:ring-orange-500/50"
+                                />
+                                <span className="text-gray-400 group-hover:text-white transition-colors">
+                                    Ghi nhớ mật khẩu
+                                </span>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={handleAutoFill}
+                                className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 px-3 py-1 rounded-full font-bold text-xs transition-all border border-orange-500/20 hover:border-orange-500/40"
+                            >
+                                ⚡ Tự động điền (Admin)
+                            </button>
                         </div>
 
                         {/* Error Message */}
