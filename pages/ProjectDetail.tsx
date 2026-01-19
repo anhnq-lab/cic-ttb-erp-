@@ -31,6 +31,7 @@ import TaskModal from '../components/TaskModal';
 import ProjectCostTab from '../components/ProjectCostTab';
 import ProjectTimesheetTab from '../components/ProjectTimesheetTab';
 import ProjectOverviewTab from '../components/ProjectOverviewTab';
+import ProjectLegalTab from '../components/ProjectLegalTab';
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (value: number | undefined) => {
@@ -431,7 +432,7 @@ const ProjectDetail = () => {
                 {activeTab === 'overview' && (
                   <ProjectOverviewTab project={project} tasks={tasks} members={members} contracts={contracts} />
                 )}
-                {activeTab === 'info' && <ProjectInfoTab project={project} />}
+                {activeTab === 'info' && <ProjectLegalTab project={project} />}
                 {activeTab === 'plan' && <ProjectPlanTab project={project} tasks={tasks} />}
                 {activeTab === 'contracts' && (
                   <div className="grid grid-cols-1 gap-8">
