@@ -445,6 +445,7 @@ const ProjectDetail = () => {
                 {activeTab === 'documents' && <ProjectDocuments />}
               </div>
             </div>
+          </div>
         </main>
       </div>
 
@@ -461,7 +462,7 @@ const ProjectDetail = () => {
           />
         )
       }
-    </div >
+    </div>
   );
 };
 
