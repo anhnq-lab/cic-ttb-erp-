@@ -467,9 +467,9 @@ const ProjectList = () => {
             }
 
             // 4. Sync RACI Tasks (Auto-generates tasks and assigns to members)
-            const taskCount = await ProjectService.syncRaciTasks(newProject.id);
-            setCreatedTasksCount(taskCount);
-            console.log(`✅ Created ${taskCount} tasks`);
+            // No longer needed as generateTasksFromTemplate is called in createProject
+            setCreatedTasksCount(0);
+            console.log(`✅ Created tasks automatically`);
 
             // 5. Save to Google Sheets if Script URL is present
             if (scriptUrl) {
@@ -529,7 +529,7 @@ const ProjectList = () => {
 📋 Mã dự án: ${newProject.code}
 📁 Tên: ${newProject.name}
 👥 Thành viên: ${membersToAdd.length} người
-✓ Tự động sinh ${taskCount} công việc theo ${newProjectData.capitalSource === 'StateBudget' ? 'Quy chế 25.10 (Vốn NS)' : 'Quy chế 25.20 (Vốn ngoài NS)'}
+✓ Tự động sinh công việc theo ${newProjectData.capitalSource === 'StateBudget' ? 'Quy chế 25.10 (Vốn NS)' : 'Quy chế 25.20 (Vốn ngoài NS)'}
 ✓ Đã gán công việc cho thành viên theo ma trận RACI`);
 
         } catch (error) {
@@ -1274,6 +1274,8 @@ const ProjectList = () => {
                             onClose={() => setIsSmartWizardOpen(false)}
                             onSuccess={(newProject) => {
                                 setLocalProjects(prev => [newProject, ...prev]);
+                                // Direct navigate to project detail
+                                navigate(`/projects/${newProject.id}`);
                             }}
                         />
 

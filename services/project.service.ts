@@ -371,7 +371,31 @@ export const ProjectService = {
         return {};
     },
 
-    getProjectRaci: async (projectId: string): Promise<any[]> => [],
+    getProjectRaci: async (projectId: string): Promise<any[]> => {
+        const { data: project } = await supabase.from('projects').select('capital_source').eq('id', projectId).single();
+        if (!project) return [];
+
+        const { data: templates } = await supabase
+            .from('task_templates')
+            .select('*')
+            .eq('capital_source', project.capital_source)
+            .order('code', { ascending: true });
+
+        if (!templates) return [];
+
+        const phases: Record<string, any> = {};
+        templates.forEach(t => {
+            if (!phases[t.phase]) {
+                phases[t.phase] = { phase: t.phase, tasks: [] };
+            }
+            phases[t.phase].tasks.push({
+                name: t.name,
+                roles: t.raci_matrix
+            });
+        });
+
+        return Object.values(phases);
+    },
 
     getProjectMembers: async (projectId: string) => {
         // Join project_members

@@ -107,9 +107,11 @@ const MemberCard: React.FC<MemberCardProps> = ({ employee, role, allocation }) =
 
 const ProjectPersonnelTab: React.FC<ProjectPersonnelTabProps> = ({ project, members, raciData }) => {
     // Get RACI template based on capital source
-    const raciTemplate = project.capitalSource === 'StateBudget'
-        ? RACI_TEMPLATES.StateBudget
-        : RACI_TEMPLATES.NonStateBudget;
+    const raciTemplate = (raciData && raciData.length > 0)
+        ? raciData
+        : (project.capitalSource === 'StateBudget'
+            ? RACI_TEMPLATES.StateBudget
+            : RACI_TEMPLATES.NonStateBudget);
 
     const [activeView, setActiveView] = useState<'team' | 'raci'>('team');
     const [searchQuery, setSearchQuery] = useState('');

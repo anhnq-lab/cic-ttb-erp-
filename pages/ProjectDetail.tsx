@@ -13,10 +13,11 @@ import {
 } from 'recharts';
 
 import { EMPLOYEES, CONTRACTS, PROJECTS } from '../constants';
-import { Contract, TaskStatus, TaskPriority, Task, Project, WorkflowStep } from '../types';
+import { Contract, TaskStatus, TaskPriority, Task, Project, WorkflowStep, ProjectStatus, ContractStatus, ProjectCost } from '../types';
 import { realtimeStore } from '../utils/realtimeStore';
 import { ContractService } from '../services/contract.service';
 import { ProjectService } from '../services/project.service';
+import { CostService } from '../services/cost.service';
 
 import Header from '../components/Header';
 import ProjectGantt from '../components/ProjectGantt';
@@ -29,7 +30,7 @@ import BIMModelViewer from '../components/BIMModelViewer';
 import TaskModal from '../components/TaskModal';
 import ProjectCostTab from '../components/ProjectCostTab';
 import ProjectTimesheetTab from '../components/ProjectTimesheetTab';
-import ProjectOverviewTab from '../components/ProjectOverviewTab'; // NEW IMPORT
+import ProjectOverviewTab from '../components/ProjectOverviewTab';
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (value: number | undefined) => {
@@ -38,35 +39,6 @@ const formatCurrency = (value: number | undefined) => {
 };
 
 // --- SUB-COMPONENTS ---
-const HighlightStat = ({ label, value, subValue, icon: Icon, colorClass }: { label: string, value: string, subValue?: string, icon: any, colorClass: string }) => (
-  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-    <div className={`w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center shrink-0`}>
-      <Icon size={24} />
-    </div>
-    <div className="overflow-hidden">
-      <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-0.5">{label}</p>
-      <p className="text-lg font-black text-slate-800 truncate">{value}</p>
-      {subValue && <p className="text-[10px] font-bold text-gray-500 truncate">{subValue}</p>}
-    </div>
-  </div>
-);
-
-const RaciBadge = ({ value }: { value?: string }) => {
-  if (!value) return null;
-  let colorClass = "text-gray-400";
-  let bgClass = "bg-gray-50";
-  if (value.includes('R')) { colorClass = "text-rose-700"; bgClass = "bg-rose-50 border-rose-100"; }
-  else if (value.includes('A')) { colorClass = "text-amber-700"; bgClass = "bg-amber-50 border-amber-100"; }
-  else if (value.includes('C')) { colorClass = "text-blue-700"; bgClass = "bg-blue-50 border-blue-100"; }
-  else if (value.includes('I')) { colorClass = "text-slate-600"; bgClass = "bg-slate-100 border-slate-200"; }
-
-  return (
-    <div className={`w-8 h-8 flex items-center justify-center rounded-lg border font-bold text-xs mx-auto shadow-sm ${bgClass} ${colorClass}`}>
-      {value}
-    </div>
-  );
-};
-
 const WorkflowModal = ({ taskName, steps, onClose }: { taskName: string, steps: WorkflowStep[], onClose: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-fade-in-up">
@@ -126,8 +98,8 @@ const ContractCard: React.FC<{ contract: Contract }> = ({ contract }) => {
               <span className="bg-orange-500/20 text-orange-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-orange-500/30">
                 {contract.contractType}
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border ${contract.status === 'Running' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                contract.status === 'Completed' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border ${contract.status === ContractStatus.ACTIVE ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                contract.status === ContractStatus.COMPLETED ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
                   'bg-gray-500/20 text-gray-300 border-gray-500/30'
                 }`}>
                 {contract.status}
@@ -189,12 +161,13 @@ const ContractCard: React.FC<{ contract: Contract }> = ({ contract }) => {
 // --- MAIN WRAPPER COMPONENT ---
 const ProjectDetail = () => {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState('overview');
   const [project, setProject] = useState<Project | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [raciData, setRaciData] = useState<any[]>([]);
+  const [costs, setCosts] = useState<ProjectCost[]>([]);
 
   const [viewMode, setViewMode] = useState<'kanban' | 'gantt'>('kanban');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -205,32 +178,33 @@ const ProjectDetail = () => {
   useEffect(() => {
     if (!id) return;
 
-    // Mock Data Fetching
     const fetchProjectData = async () => {
-      // 1. Project Info
-      const foundProject = PROJECTS.find(p => p.id === id);
-      setProject(foundProject || null);
+      try {
+        const foundProject = await ProjectService.getProjectById(id);
+        if (foundProject) {
+          setProject(foundProject);
 
-      // 2. Contracts
-      const projectContracts = await ContractService.getContractsByProject(id);
-      setContracts(projectContracts);
+          const [projectContracts, cleanTasks, projectMembers, projectRaci, projectCosts] = await Promise.all([
+            ContractService.getContractsByProject(id),
+            ProjectService.getProjectTasks(id),
+            ProjectService.getProjectMembers(id),
+            ProjectService.getProjectRaci(id),
+            CostService.getCostsByProject(id)
+          ]);
 
-      // 3. Tasks
-      const cleanTasks = await realtimeStore.getTasks(id); // Use realtimestore helper
-      setTasks(cleanTasks);
-
-      // 4. Members
-      const projectMembers = await ProjectService.getProjectMembers(id);
-      setMembers(projectMembers);
-
-      // 5. RACI
-      const raci = await ProjectService.getProjectRaci(id);
-      setRaciData(raci);
+          setContracts(projectContracts);
+          setTasks(cleanTasks);
+          setMembers(projectMembers);
+          setRaciData(projectRaci);
+          setCosts(projectCosts);
+        }
+      } catch (err) {
+        console.error("Error fetching project data:", err);
+      }
     };
 
     fetchProjectData();
 
-    // Subscribe to realtime updates
     const unsubscribe = realtimeStore.subscribe(id || '', async () => {
       const updatedTasks = await realtimeStore.getTasks(id || '');
       setTasks(updatedTasks);
@@ -300,9 +274,9 @@ const ProjectDetail = () => {
   if (!project) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-gray-400">
-          <Loader size={32} className="animate-spin text-indigo-600" />
-          <p>Đang tải dữ liệu dự án...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-bold text-slate-600 animate-pulse uppercase tracking-widest">Đang tải dữ liệu PREMIUM...</p>
         </div>
       </div>
     );
@@ -311,214 +285,217 @@ const ProjectDetail = () => {
   const isStateBudget = project.capitalSource === 'StateBudget';
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-inter">
+    <div className="flex h-screen bg-white overflow-hidden font-inter selection:bg-indigo-100 selection:text-indigo-900">
       <div className="flex-1 flex flex-col min-w-0">
-        <Header title="Chi tiết dự án" breadcrumb="Danh sách dự án / Chi tiết" />
+        <Header title="Quản lý Dự án BIM" breadcrumb={`Dự án / ${project.code}`} />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          <div className="w-full space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-slate-50/50">
+          <div className="max-w-7xl mx-auto space-y-8">
 
-            {/* --- TOP BAR --- */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-              <div className="flex items-center gap-4">
-                <Link to="/projects/list" className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm text-gray-500">
-                  <ArrowLeft size={20} />
-                </Link>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl font-black text-slate-800 tracking-tight">{project.name}</h1>
-                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${project.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                      project.status === 'Delayed' ? 'bg-rose-100 text-rose-700 border-rose-200' :
-                        'bg-blue-100 text-blue-700 border-blue-200'
-                      }`}>
-                      {project.status === 'Completed' ? 'Hoàn thành' : project.status === 'Delayed' ? 'Chậm tiến độ' : 'Đang thực hiện'}
-                    </span>
+            {/* --- ULTIMATE PROJECT HERO --- */}
+            <div className="group relative rounded-[2rem] overflow-hidden border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] bg-slate-900 min-h-[400px] animate-fade-in-up">
+              {/* Background Layers */}
+              <div className="absolute inset-0 z-0">
+                <img
+                  src={project.thumbnail || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=2000"}
+                  className="w-full h-full object-cover opacity-60 scale-100 group-hover:scale-110 transition-transform duration-[3000ms] ease-out"
+                  alt=""
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900/80 to-transparent"></div>
+              </div>
+
+              {/* Decorative Blur Orbs */}
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] animate-pulse"></div>
+              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-500/10 rounded-full blur-[100px]"></div>
+
+              <div className="relative z-10 p-8 md:p-12 h-full flex flex-col justify-between">
+                {/* Top Row: Context & Badges */}
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-4">
+                    <Link to="/projects" className="group/back flex items-center gap-2 text-white/70 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">
+                      <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl group-hover/back:-translate-x-1 transition-transform">
+                        <ArrowLeft size={16} />
+                      </div>
+                      Quay lại danh sách
+                    </Link>
+
+                    <div className="flex flex-wrap gap-3">
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-xl border-t border-white/20 shadow-xl ${project.status === ProjectStatus.COMPLETED ? 'bg-emerald-500/30 text-emerald-300' :
+                          project.status === ProjectStatus.DELAYED ? 'bg-rose-500/30 text-rose-300' :
+                            'bg-indigo-500/30 text-indigo-300'
+                        }`}>
+                        {project.status}
+                      </span>
+                      <span className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-xl rounded-full text-[10px] text-white font-black uppercase tracking-[0.2em] border-t border-white/20 shadow-xl">
+                        {isStateBudget ? <Landmark size={12} className="text-amber-400" /> : <Shield size={12} className="text-blue-400" />}
+                        {isStateBudget ? 'Vốn Ngân Sách' : 'Vốn Ngoài NS'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
-                    <span className="flex items-center gap-1.5"><Building2 size={12} /> {project.code}</span>
-                    <span className="flex items-center gap-1.5">
-                      {isStateBudget ? <Landmark size={12} className="text-amber-600" /> : <Shield size={12} className="text-indigo-600" />}
-                      {isStateBudget ? 'Vốn Ngân Sách' : 'Vốn Ngoài NS'}
-                    </span>
-                    <span className="flex items-center gap-1.5"><MapPin size={12} /> {project.location || 'Chưa cập nhật'}</span>
+
+                  <div className="hidden md:flex flex-col items-end text-right">
+                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1">Cập nhật lần cuối</p>
+                    <p className="text-white font-bold text-sm">Hôm nay, 14:30</p>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Title & Key Stats */}
+                <div className="mt-12 flex flex-col lg:flex-row justify-between items-end gap-12">
+                  <div className="flex-1 max-w-2xl text-left">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-1 bg-orange-500 rounded-full"></div>
+                      <span className="text-orange-400 font-black text-xs uppercase tracking-widest">Project #{project.code}</span>
+                    </div>
+                    <h1 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight mb-6 drop-shadow-2xl">
+                      {project.name}
+                    </h1>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Vị trí xây dựng</p>
+                        <p className="text-white font-bold flex items-center gap-2"><MapPin size={14} className="text-rose-500" /> {project.location || 'Chưa rõ'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Ban điều hành</p>
+                        <p className="text-white font-bold flex items-center gap-2"><Users size={14} className="text-indigo-400" /> {members.length} Nhân sự</p>
+                      </div>
+                      <div className="space-y-1 hidden md:block">
+                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Giai đoạn hiện tại</p>
+                        <p className="text-white font-bold flex items-center gap-2"><Layers size={14} className="text-emerald-400" /> Phối hợp BIM</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full lg:w-96 space-y-6">
+                    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+                      <div className="flex justify-between items-end mb-4">
+                        <div className="text-left">
+                          <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1">Tiến độ hoàn thành</p>
+                          <div className="text-4xl font-black text-white italic">{project.progress}%</div>
+                        </div>
+                        <TrendingUp size={32} className="text-orange-500 animate-bounce" />
+                      </div>
+                      <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 rounded-full transition-all duration-[2000ms] relative"
+                          style={{ width: `${project.progress}%` }}
+                        >
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={openCreateTask} className="flex-1 py-4 bg-white text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:bg-slate-100 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <Plus size={16} /> Tạo Task
+                      </button>
+                      <button className="flex-1 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
+                        <FileText size={16} /> Report
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-white border border-gray-200 text-slate-700 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-2">
-                  <FileText size={16} /> Xuất báo cáo
-                </button>
-                <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2">
-                  <Plus size={16} /> Tạo yêu cầu
-                </button>
-              </div>
             </div>
 
-            {/* --- TAB NAVIGATION --- */}
-            <div className="flex border-b border-gray-200 mb-8 overflow-x-auto custom-scrollbar bg-white rounded-t-xl px-2">
+            {/* --- PREMIUM TAB NAVIGATION --- */}
+            <div className="sticky top-4 z-40 bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200 shadow-xl p-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
               {[
-                { id: 'info', label: 'Thông tin dự án', icon: Info },
-                { id: 'overview', label: 'Tổng quan', icon: Layout },
+                { id: 'overview', label: 'Dashboard', icon: Layout },
+                { id: 'info', label: 'Pháp lý', icon: Info },
                 { id: 'plan', label: 'Kế hoạch', icon: Calendar },
-                { id: 'timesheet', label: 'Báo cáo ngày', icon: Clock },
+                { id: 'timesheet', label: 'Chấm công', icon: Clock },
                 { id: 'contracts', label: 'Hợp đồng', icon: ScrollText },
-                { id: 'personnel', label: 'Nhân sự', icon: Users },
-                { id: 'cost', label: 'Chi phí', icon: DollarSign },
-                { id: 'model', label: 'Mô hình BIM', icon: Box },
-                { id: 'production', label: 'Quản lý Sản xuất', icon: BarChart3 },
-                { id: 'documents', label: 'Hồ sơ tài liệu', icon: Layers },
+                { id: 'personnel', label: 'RACI', icon: Users },
+                { id: 'cost', label: 'Tài chính', icon: DollarSign },
+                { id: 'model', label: 'BIM 3D', icon: Box },
+                { id: 'production', label: 'Sản xuất', icon: BarChart3 },
+                { id: 'documents', label: 'Kho lưu trữ', icon: Layers },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-4 text-xs font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap
+                  className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap
                     ${activeTab === tab.id
-                      ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 -translate-y-0.5'
+                      : 'text-gray-400 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                 >
-                  <tab.icon size={16} className={activeTab === tab.id ? 'animate-pulse' : ''} />
+                  <tab.icon size={16} className={activeTab === tab.id ? 'text-orange-400' : ''} />
                   {tab.label}
                 </button>
               ))}
             </div>
 
-            {/* --- TAB CONTENT RENDER --- */}
-            <div className="animate-fade-in">
-
-              {/* 1. INFO TAB */}
-              {activeTab === 'info' && (
-                <ProjectInfoTab project={project} />
-              )}
-
-              {/* 2. OVERVIEW TAB (FIXED) */}
-              {activeTab === 'overview' && (
-                <ProjectOverviewTab
-                  project={project}
-                  tasks={tasks}
-                  members={members}
-                  contracts={contracts}
-                />
-              )}
-
-              {/* 3. PLAN TAB */}
-              {activeTab === 'plan' && (
-                <ProjectPlanTab
-                  project={project}
-                  tasks={tasks} // Pass tasks for calculation
-                />
-              )}
-
-              {/* 3. CONTRACTS TAB */}
-              {activeTab === 'contracts' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                      <ScrollText size={20} className="text-indigo-600" /> Danh sách hợp đồng
-                    </h3>
-                    <button className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">
-                      + Thêm Hợp đồng
-                    </button>
-                  </div>
-                  {contracts.length > 0 ? (
-                    contracts.map(contract => (
-                      <ContractCard key={contract.id} contract={contract} />
-                    ))
-                  ) : (
-                    <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-                      <ScrollText size={48} className="mx-auto text-gray-300 mb-3" />
-                      <p className="text-gray-500 font-medium">Chưa có hợp đồng nào được ghi nhận</p>
+            <div className="pb-12 min-h-[600px]">
+              <div className="animate-fade-in-up duration-500">
+                {activeTab === 'overview' && (
+                  <ProjectOverviewTab project={project} tasks={tasks} members={members} contracts={contracts} />
+                )}
+                {activeTab === 'info' && <ProjectInfoTab project={project} />}
+                {activeTab === 'plan' && <ProjectPlanTab project={project} tasks={tasks} />}
+                {activeTab === 'contracts' && (
+                  <div className="grid grid-cols-1 gap-8">
+                    <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                        <div className="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
+                        Quản lý Hợp đồng
+                      </h2>
+                      <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Thêm mới</button>
                     </div>
-                  )}
-                </div>
-              )}
+                    {contracts.map(c => <ContractCard key={c.id} contract={c} />)}
+                  </div>
+                )}
+                {activeTab === 'personnel' && (
+                  <ProjectPersonnelTab project={project} members={members} raciData={raciData} />
+                )}
+                {activeTab === 'timesheet' && <ProjectTimesheetTab projectId={id || ''} />}
+                {activeTab === 'cost' && <ProjectCostTab projectId={id || ''} />}
+                {activeTab === 'model' && <BIMModelViewer project={project} />}
+                {activeTab === 'production' && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Tiến độ sản xuất</h3>
+                      <div className="bg-white border border-gray-200 p-1.5 rounded-2xl flex items-center shadow-sm">
+                        <button
+                          onClick={() => setViewMode('kanban')}
+                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                          <Columns size={20} />
+                        </button>
+                        <button
+                          onClick={() => setViewMode('gantt')}
+                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'gantt' ? 'bg-slate-900 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                          <BarChart3 size={20} />
+                        </button>
+                      </div>
+                    </div>
 
-              {/* 4. PERSONNEL TAB */}
-              {activeTab === 'personnel' && (
-                <ProjectPersonnelTab project={project} members={members} raciData={raciData} />
-              )}
-
-              {/* 5. TIMESHEET TAB (NEW) */}
-              {activeTab === 'timesheet' && (
-                <ProjectTimesheetTab projectId={id || ''} />
-              )}
-
-              {/* 6. COST TAB (NEW) */}
-              {activeTab === 'cost' && (
-                <ProjectCostTab projectId={id || ''} />
-              )}
-
-              {/* 7. BIM MODEL TAB */}
-              {activeTab === 'model' && (
-                <BIMModelViewer project={project} />
-              )}
-
-              {/* 7. PRODUCTION TAB (Gantt/Kanban) */}
-              {activeTab === 'production' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800 text-lg">Tiến độ sản xuất</h3>
-                    <div className="bg-white border border-gray-200 p-1 rounded-lg flex items-center shadow-sm">
-                      <button
-                        onClick={() => setViewMode('kanban')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                        title="Kanban Board"
-                      >
-                        <Columns size={18} />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('gantt')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'gantt' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                        title="Gantt Chart"
-                      >
-                        <Gavel size={18} />
+                    <div className="flex justify-between items-center gap-4 bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3 w-full max-w-md bg-gray-50 px-4 py-2.5 rounded-2xl border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                        <Filter size={18} className="text-gray-400" />
+                        <input type="text" placeholder="Tìm kiếm công việc..." className="bg-transparent border-none outline-none text-sm w-full font-medium" />
+                      </div>
+                      <button onClick={openCreateTask} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2">
+                        <Plus size={18} /> Thêm công việc
                       </button>
                     </div>
-                  </div>
 
-                  {/* Action Bar */}
-                  <div className="flex justify-between items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3 w-full max-w-md bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                      <Filter size={16} className="text-gray-400" />
-                      <input type="text" placeholder="Lọc theo tên công việc, người thực hiện..." className="bg-transparent border-none outline-none text-sm w-full font-medium text-gray-700 placeholder:text-gray-400" />
+                    <div className="bg-white border border-gray-200 rounded-3xl shadow-sm min-h-[600px] overflow-hidden">
+                      {viewMode === 'kanban' ? (
+                        <ProjectKanban tasks={tasks} onMoveTask={handleTaskMove} onEditTask={openEditTask} />
+                      ) : (
+                        <ProjectGantt tasks={tasks} />
+                      )}
                     </div>
-                    <button onClick={openCreateTask} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2">
-                      <Plus size={18} /> Thêm công việc
-                    </button>
                   </div>
-
-                  {/* View Content */}
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm min-h-[500px] overflow-hidden">
-                    {viewMode === 'kanban' ? (
-                      <ProjectKanban
-                        tasks={tasks}
-                        onTaskMove={handleTaskMove}
-                        onEditTask={openEditTask}
-                      />
-                    ) : (
-                      <ProjectGantt tasks={tasks} />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* 8. DOCUMENTS TAB */}
-              {activeTab === 'documents' && (
-                <ProjectDocuments projectId={id} />
-              )}
+                )}
+                {activeTab === 'documents' && <ProjectDocuments />}
+              </div>
             </div>
           </div>
         </main>
       </div>
-
-      {/* MODALS */}
-      {selectedWorkflow && (
-        <WorkflowModal
-          taskName="Quy trình BIM"
-          steps={selectedWorkflow}
-          onClose={() => setSelectedWorkflow(null)}
-        />
-      )}
 
       {isTaskModalOpen && (
         <TaskModal
