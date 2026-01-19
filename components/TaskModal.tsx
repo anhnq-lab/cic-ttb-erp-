@@ -23,6 +23,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
     const [status, setStatus] = useState<string>(TaskStatus.OPEN);
 
     // Mock Data for new features
+    const [phase, setPhase] = useState('');
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [attachments, setAttachments] = useState<any[]>([]);
@@ -44,6 +45,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
                 setDueDate(taskToEdit.dueDate || '');
                 setPriority(taskToEdit.priority as TaskPriority);
                 setStatus(taskToEdit.status || TaskStatus.OPEN);
+                setPhase(taskToEdit.phase || '');
                 // Find assignee based on id or name (for backward compatibility if id is missing in older data)
                 const emp = employees.find(e => e.id === taskToEdit.assignee?.id || e.name === taskToEdit.assignee?.name);
                 setAssigneeId(emp ? emp.id : '');
@@ -66,6 +68,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
                 setDueDate('');
                 setPriority(TaskPriority.MEDIUM);
                 setStatus(TaskStatus.OPEN);
+                setPhase('');
                 setAssigneeId('');
                 setComments([]);
                 setAttachments([]);
@@ -183,6 +186,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
             priority: priority,
             projectId: projectId,
             status: status as TaskStatus,
+            phase: phase,
             assignee: selectedEmp ? {
                 name: selectedEmp.name,
                 avatar: selectedEmp.avatar,
@@ -344,8 +348,25 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
                                 )}
                             </div>
 
-                            {/* Due Date & Priority */}
+                            {/* Phase, Due Date & Priority */}
                             <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Giai đoạn</label>
+                                    <select
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                                        value={phase}
+                                        onChange={(e) => setPhase(e.target.value)}
+                                    >
+                                        <option value="">-- Chọn giai đoạn --</option>
+                                        <option value="1. Xúc tiến Dự án">1. Xúc tiến Dự án</option>
+                                        <option value="2. Báo giá">2. Báo giá</option>
+                                        <option value="3. Chuẩn bị">3. Chuẩn bị</option>
+                                        <option value="4. Triển khai trình thẩm định">4. Triển khai trình thẩm định</option>
+                                        <option value="5. Triển khai Hỗ trợ QLDA">5. Triển khai Hỗ trợ QLDA</option>
+                                        <option value="6. Thanh quyết toán">6. Thanh quyết toán</option>
+                                        <option value="7. Lưu trữ rút KN">7. Lưu trữ rút KN</option>
+                                    </select>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hạn hoàn thành</label>
                                     <div className="relative">
