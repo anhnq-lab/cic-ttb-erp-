@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectService } from '../services/project.service';
-import { Project, ProjectTemplate } from '../types';
+import { CRMService } from '../services/crm.service';
+import { EmployeeService } from '../services/employee.service';
+import { Project, ProjectTemplate, Customer, Employee } from '../types';
 import { X, Layers, Check, ChevronRight, Layout, ArrowRight } from 'lucide-react';
 
 interface ProjectCreationWizardProps {
@@ -12,8 +14,11 @@ interface ProjectCreationWizardProps {
 const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, onClose, onSuccess }) => {
     const [step, setStep] = useState(1);
     const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
-    const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Dropdown Data
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Project>>({
@@ -29,16 +34,28 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
 
     useEffect(() => {
         if (isOpen) {
-            loadTemplates();
+            loadInitialData();
         }
     }, [isOpen]);
 
-    const loadTemplates = async () => {
+    const loadInitialData = async () => {
         try {
-            const data = await ProjectService.getProjectTemplates();
-            setTemplates(data || []);
+            const [fetchedTemplates, fetchedCustomers, fetchedEmployees] = await Promise.all([
+                ProjectService.getProjectTemplates(),
+                CRMService.getCustomers(),
+                EmployeeService.getEmployees()
+            ]);
+
+            setTemplates(fetchedTemplates || []);
+            setCustomers(fetchedCustomers || []);
+            setEmployees(fetchedEmployees || []);
+
+            // Auto-generate project code
+            const autoCode = await ProjectService.generateProjectCode();
+            setFormData(prev => ({ ...prev, code: autoCode }));
+
         } catch (error) {
-            console.error("Failed to load templates", error);
+            console.error("Failed to load initial data", error);
         }
     };
 
@@ -132,26 +149,58 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                     placeholder="VD: Khu Công nghiệp Trấn Yên"
                                 />
                             </div>
+
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Mã Dự án <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Mã Dự án <span className="text-gray-400 font-normal">(Tự động)</span></label>
                                 <input
                                     type="text"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                                     value={formData.code}
-                                    onChange={e => setFormData({ ...formData, code: e.target.value })}
-                                    placeholder="VD: PRJ-001"
+                                    readOnly
+                                    title="Mã dự án được tạo tự động (26xxx)"
                                 />
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Nguồn vốn <span className="text-red-500">*</span></label>
+                                <select
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                                    value={formData.capitalSource}
+                                    onChange={e => setFormData({ ...formData, capitalSource: e.target.value as any })}
+                                >
+                                    <option value="NonStateBudget">Vốn Ngoài Ngân sách (Tư nhân)</option>
+                                    <option value="StateBudget">Vốn Ngân sách (Nhà nước)</option>
+                                </select>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Khách hàng</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                                <select
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white"
                                     value={formData.client}
                                     onChange={e => setFormData({ ...formData, client: e.target.value })}
-                                    placeholder="Tên CĐT..."
-                                />
+                                >
+                                    <option value="">-- Chọn Khách hàng --</option>
+                                    {customers.map(c => (
+                                        <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
+                                    ))}
+                                </select>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Quản lý dự án (PM)</label>
+                                <select
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                                    value={formData.manager}
+                                    onChange={e => setFormData({ ...formData, manager: e.target.value })}
+                                >
+                                    <option value="">-- Chọn Quản lý --</option>
+                                    {employees.map(e => (
+                                        <option key={e.id} value={e.id}>{e.name} - {e.department}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Địa điểm</label>
                                 <input
@@ -162,16 +211,7 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                                     placeholder="VD: Yên Bái"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Quản lý dự án (PM)</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                                    value={formData.manager}
-                                    onChange={e => setFormData({ ...formData, manager: e.target.value })}
-                                    placeholder="Tên PM..."
-                                />
-                            </div>
+
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Ngân sách (VND)</label>
                                 <input
@@ -201,7 +241,11 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({ isOpen, o
                             </div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-2">Sẵn sàng khởi tạo!</h3>
                             <p className="text-gray-500 max-w-md mx-auto mb-8">
-                                Hệ thống sẽ tạo dự án <strong>{formData.name}</strong> và tự động sinh ra <strong>20 công việc</strong> theo quy trình BIM chuẩn.
+                                Hệ thống sẽ tạo dự án <strong>{formData.name}</strong> với mã <strong>{formData.code}</strong>.
+                                <br />
+                                <span className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded mt-2 inline-block">
+                                    Nguồn vốn: {formData.capitalSource === 'StateBudget' ? 'Ngân sách Nhà nước' : 'Ngoài Ngân sách'}
+                                </span>
                             </p>
 
                             <div className="bg-orange-50 p-6 rounded-xl border border-orange-100 max-w-lg mx-auto text-left">

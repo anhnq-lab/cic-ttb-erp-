@@ -2,7 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { Project, ProjectStatus } from '../types';
+import { Project, ProjectStatus } from '../types.ts';
 import { supabase } from '../utils/supabaseClient';
 
 async function testWorkflow() {
@@ -76,6 +76,17 @@ async function testWorkflow() {
         console.log('Non-State Project created.');
         const tasks = await ProjectService.getProjectTasks(createdNonState.id);
         console.log(`Generated ${tasks.length} tasks for Non-State Budget project.`);
+    }
+
+    // 3. Test Auto Project Code Generation
+    console.log('\nTesting Project Code Generation...');
+    const generatedCode = await ProjectService.generateProjectCode();
+    console.log(`Generated Code: ${generatedCode}`);
+
+    if (generatedCode.startsWith('26')) {
+        console.log('✅ Generated code starts with 26 (Year)');
+    } else {
+        console.log('❌ Generated code format incorrect');
     }
 
     // Cleanup

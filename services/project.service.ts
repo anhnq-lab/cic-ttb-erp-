@@ -56,6 +56,33 @@ const mapProjectToDB = (p: Partial<Project>) => ({
 export const ProjectService = {
     // --- PROJECT METHODS ---
 
+    // Generate Project Code: 26xxx (e.g., 26001)
+    generateProjectCode: async (): Promise<string> => {
+        const currentYear = new Date().getFullYear().toString().slice(-2); // "26"
+        const prefix = `${currentYear}`;
+
+        // Find the latest project with code starting with "26"
+        const { data, error } = await supabase
+            .from('projects')
+            .select('code')
+            .ilike('code', `${prefix}%`)
+            .order('code', { ascending: false })
+            .limit(1)
+            .single();
+
+        let sequence = 1;
+        if (data && data.code) {
+            // Extract sequence part (assuming 26001 format)
+            const existingSequence = parseInt(data.code.substring(2));
+            if (!isNaN(existingSequence)) {
+                sequence = existingSequence + 1;
+            }
+        }
+
+        // Format: 26 + 3 digits (e.g., 001) -> 26001
+        return `${prefix}${sequence.toString().padStart(3, '0')}`;
+    },
+
     getProjects: async (): Promise<Project[]> => {
         const { data, error } = await supabase
             .from('projects')
