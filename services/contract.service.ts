@@ -6,11 +6,24 @@ import { supabase } from '../utils/supabaseClient';
 import { Contract, ContractStatus, PaymentTransaction, PaymentStatus } from '../types';
 import { CONTRACTS } from '../constants'; // Fallback
 
+export interface ContractAmendment {
+    id: string;
+    contractId: string;
+    amendmentNumber: number;
+    amendmentDate: string;
+    description: string;
+    valueChange: number;
+    newTotalValue: number;
+    approvedBy?: string;
+    fileUrl?: string;
+    createdAt?: string;
+}
+
 // Mapper for DB -> App
 const mapContractFromDB = (c: any): Contract => ({
     id: c.id,
     projectId: c.project_id,
-    customerId: c.customer_id, // ensure compatible with type
+    customerId: c.customer_id,
     code: c.code,
     signedDate: c.signed_date,
     packageName: c.package_name,
@@ -83,7 +96,6 @@ const mapContractFromDB = (c: any): Contract => ({
     })),
 
     // Personnel is in a separate table contract_personnel, check if joined
-    // For now returning empty or mapping if joined
     personnel: (c.contract_personnel || []).map((p: any) => ({
         role: p.role,
         name: p.name
@@ -211,8 +223,6 @@ export const ContractService = {
             console.error('Error updating contract:', error);
             return null;
         }
-        // Return full object by refetching or allow generic return
-        // Ideally should fetch relations again, but for now map what we have
         return mapContractFromDB(data);
     },
 
@@ -229,11 +239,6 @@ export const ContractService = {
             console.error('Error creating contract:', error);
             return null;
         }
-
-        // Also need to create milestones if present?
-        // Usually creation is separate for relations, but if provided in UI...
-        // For MVP, we assume complex creation handled separately or we add logic here
-
         return mapContractFromDB(data);
     },
 
@@ -260,10 +265,6 @@ export const ContractService = {
             return null;
         }
 
-        // Update contract totals trigger typically handles this, but if not:
-        // We rely on DB triggers ideally.
-
-        // Return updated contract
         const { data } = await supabase.from('contracts').select('*, payment_transactions(*)').eq('id', contractId).single();
         return data ? mapContractFromDB(data) : null;
     },
@@ -275,7 +276,6 @@ export const ContractService = {
 
         await supabase.from('payment_milestones').update(payload).eq('id', milestoneId);
 
-        // Return updated contract
         const { data } = await supabase
             .from('contracts')
             .select('*, payment_milestones(*)')
@@ -283,6 +283,67 @@ export const ContractService = {
             .single();
 
         return data ? mapContractFromDB(data) : null;
+    },
+
+    // Get Amendments
+    getAmendments: async (contractId: string): Promise<ContractAmendment[]> => {
+        const { data, error } = await supabase
+            .from('contract_amendments')
+            .select('*')
+            .eq('contract_id', contractId)
+            .order('amendment_number', { ascending: true });
+
+        if (error) return [];
+        return data.map((a: any) => ({
+            id: a.id,
+            contractId: a.contract_id,
+            amendmentNumber: a.amendment_number,
+            amendmentDate: a.amendment_date,
+            description: a.description,
+            valueChange: Number(a.value_change),
+            newTotalValue: Number(a.new_total_value),
+            approvedBy: a.approved_by,
+            fileUrl: a.file_url,
+            createdAt: a.created_at
+        }));
+    },
+
+    // Create Amendment
+    createAmendment: async (amendment: Partial<ContractAmendment>): Promise<ContractAmendment | null> => {
+        const payload = {
+            contract_id: amendment.contractId,
+            amendment_number: amendment.amendmentNumber,
+            amendment_date: amendment.amendmentDate,
+            description: amendment.description,
+            value_change: amendment.valueChange,
+            new_total_value: amendment.newTotalValue,
+            approved_by: amendment.approvedBy,
+            file_url: amendment.fileUrl
+        };
+
+        const { data, error } = await supabase
+            .from('contract_amendments')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating amendment:', error);
+            return null;
+        }
+
+        return {
+            id: data.id,
+            contractId: data.contract_id,
+            amendmentNumber: data.amendment_number,
+            amendmentDate: data.amendment_date,
+            description: data.description,
+            valueChange: Number(data.value_change),
+            newTotalValue: Number(data.new_total_value),
+            approvedBy: data.approved_by,
+            fileUrl: data.file_url,
+            createdAt: data.created_at
+        };
     },
 
     // Get receivables by client (Aggregation)
@@ -294,9 +355,6 @@ export const ContractService = {
         contractCount: number;
         paymentProgress: number;
     }>> => {
-        // This is complex to do with simple Supabase query.
-        // Option 1: Fetch all and aggregate in JS (easiest for small data)
-        // Option 2: RPC call
         const contracts = await ContractService.getContracts();
 
         const clientMap: Record<string, { total: number; paid: number; remaining: number; count: number }> = {};
@@ -404,4 +462,3 @@ export const ContractService = {
             }));
     }
 };
-

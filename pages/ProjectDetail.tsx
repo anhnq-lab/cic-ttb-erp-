@@ -34,6 +34,7 @@ import ProjectOverviewTab from '../components/ProjectOverviewTab';
 import ProjectLegalTab from '../components/ProjectLegalTab';
 import ProjectConstructionTab from '../components/ProjectConstructionTab';
 import ProjectReportsTab from '../components/ProjectReportsTab';
+import ProjectContractsTab from '../components/ProjectContractsTab';
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (value: number | undefined) => {
@@ -407,7 +408,7 @@ const ProjectDetail = () => {
                 { id: 'info', label: 'Pháp lý', icon: Info },
                 { id: 'plan', label: 'Kế hoạch', icon: Calendar },
                 { id: 'timesheet', label: 'Chấm công', icon: Clock },
-                { id: 'contracts', label: 'Hợp đồng', icon: ScrollText },
+                { id: 'contracts', label: 'Hợp đồng', icon: FileCheck },
                 { id: 'personnel', label: 'RACI', icon: Users },
                 { id: 'cost', label: 'Tài chính', icon: DollarSign },
                 { id: 'model', label: 'BIM 3D', icon: Box },
@@ -437,22 +438,9 @@ const ProjectDetail = () => {
                 )}
                 {activeTab === 'info' && <ProjectLegalTab project={project} />}
                 {activeTab === 'plan' && <ProjectPlanTab project={project} tasks={tasks} />}
-                {activeTab === 'contracts' && (
-                  <div className="grid grid-cols-1 gap-8">
-                    <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                      <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                        <div className="w-1.5 h-8 bg-indigo-600 rounded-full"></div>
-                        Quản lý Hợp đồng
-                      </h2>
-                      <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all">+ Thêm mới</button>
-                    </div>
-                    {contracts.map(c => <ContractCard key={c.id} contract={c} />)}
-                  </div>
-                )}
-                {activeTab === 'personnel' && (
-                  <ProjectPersonnelTab project={project} members={members} raciData={raciData} />
-                )}
                 {activeTab === 'timesheet' && <ProjectTimesheetTab projectId={id || ''} />}
+                {activeTab === 'contracts' && <ProjectContractsTab project={project} />}
+                {activeTab === 'personnel' && <ProjectPersonnelTab project={project} members={members} raciData={raciData} />}
                 {activeTab === 'cost' && <ProjectCostTab projectId={id || ''} />}
                 {activeTab === 'model' && <BIMModelViewer project={project} />}
                 {activeTab === 'production' && <ProjectConstructionTab project={project} />}
@@ -460,21 +448,22 @@ const ProjectDetail = () => {
                 {activeTab === 'documents' && <ProjectDocuments />}
               </div>
             </div>
-          </div>
         </main>
-      </div >
+      </div>
 
-      {isTaskModalOpen && (
-        <TaskModal
-          isOpen={isTaskModalOpen}
-          onClose={() => { setIsTaskModalOpen(false); setSelectedTask(undefined); }}
-          onSave={selectedTask ? (data) => handleUpdateTask(selectedTask.id, data) : handleCreateTask}
-          taskToEdit={selectedTask}
-          employees={members}
-          projectId={id || ''}
-          onDelete={selectedTask ? () => handleDeleteTask(selectedTask.id) : undefined}
-        />
-      )}
+      {
+        isTaskModalOpen && (
+          <TaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => { setIsTaskModalOpen(false); setSelectedTask(undefined); }}
+            onSave={selectedTask ? (data) => handleUpdateTask(selectedTask.id, data) : handleCreateTask}
+            taskToEdit={selectedTask}
+            employees={members}
+            projectId={id || ''}
+            onDelete={selectedTask ? () => handleDeleteTask(selectedTask.id) : undefined}
+          />
+        )
+      }
     </div >
   );
 };
