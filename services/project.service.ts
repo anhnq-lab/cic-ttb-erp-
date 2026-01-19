@@ -22,7 +22,7 @@ const mapProjectFromDB = (p: any): Project => ({
     constructionType: '',
     constructionLevel: '',
     scale: '',
-    capitalSource: 'NonStateBudget' as any,
+    capitalSource: p.capital_source || 'NonStateBudget',
     members: 0,
     serviceType: '',
     area: '',
@@ -50,7 +50,8 @@ const mapProjectToDB = (p: Partial<Project>) => ({
     start_date: p.deadline, // Map deadline to start_date for now
     deadline: p.deadline,
     thumbnail: p.thumbnail,
-    description: p.deliverables // Map deliverables to description
+    description: p.deliverables, // Map deliverables to description
+    capital_source: p.capitalSource || 'NonStateBudget'
 });
 
 export const ProjectService = {

@@ -1,13 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const getEnv = (name: string) => {
+    try {
+        // @ts-ignore
+        return import.meta.env[name] || process.env[name] || '';
+    } catch {
+        return process.env[name] || '';
+    }
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 // Check if configuration is available
 const hasConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
 // Create Supabase client
+console.log('Supabase URL:', supabaseUrl.slice(0, 20) + '...');
+console.log('Supabase Key:', supabaseAnonKey.slice(0, 20) + '...');
+
 export const supabase = hasConfig
     ? createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
