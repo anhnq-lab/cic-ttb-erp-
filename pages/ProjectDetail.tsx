@@ -32,6 +32,7 @@ import ProjectCostTab from '../components/ProjectCostTab';
 import ProjectTimesheetTab from '../components/ProjectTimesheetTab';
 import ProjectOverviewTab from '../components/ProjectOverviewTab';
 import ProjectLegalTab from '../components/ProjectLegalTab';
+import ProjectConstructionTab from '../components/ProjectConstructionTab';
 
 // --- HELPER FUNCTIONS ---
 const formatCurrency = (value: number | undefined) => {
@@ -452,51 +453,13 @@ const ProjectDetail = () => {
                 {activeTab === 'timesheet' && <ProjectTimesheetTab projectId={id || ''} />}
                 {activeTab === 'cost' && <ProjectCostTab projectId={id || ''} />}
                 {activeTab === 'model' && <BIMModelViewer project={project} />}
-                {activeTab === 'production' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Tiến độ sản xuất</h3>
-                      <div className="bg-white border border-gray-200 p-1.5 rounded-2xl flex items-center shadow-sm">
-                        <button
-                          onClick={() => setViewMode('kanban')}
-                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                          <Columns size={20} />
-                        </button>
-                        <button
-                          onClick={() => setViewMode('gantt')}
-                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'gantt' ? 'bg-slate-900 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                          <BarChart3 size={20} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center gap-4 bg-white p-5 rounded-3xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center gap-3 w-full max-w-md bg-gray-50 px-4 py-2.5 rounded-2xl border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                        <Filter size={18} className="text-gray-400" />
-                        <input type="text" placeholder="Tìm kiếm công việc..." className="bg-transparent border-none outline-none text-sm w-full font-medium" />
-                      </div>
-                      <button onClick={openCreateTask} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2">
-                        <Plus size={18} /> Thêm công việc
-                      </button>
-                    </div>
-
-                    <div className="bg-white border border-gray-200 rounded-3xl shadow-sm min-h-[600px] overflow-hidden">
-                      {viewMode === 'kanban' ? (
-                        <ProjectKanban tasks={tasks} onMoveTask={handleTaskMove} onEditTask={openEditTask} />
-                      ) : (
-                        <ProjectGantt tasks={tasks} />
-                      )}
-                    </div>
-                  </div>
-                )}
+                {activeTab === 'production' && <ProjectConstructionTab project={project} />}
                 {activeTab === 'documents' && <ProjectDocuments />}
               </div>
             </div>
           </div>
         </main>
-      </div>
+      </div >
 
       {isTaskModalOpen && (
         <TaskModal
@@ -509,7 +472,7 @@ const ProjectDetail = () => {
           onDelete={selectedTask ? () => handleDeleteTask(selectedTask.id) : undefined}
         />
       )}
-    </div>
+    </div >
   );
 };
 
