@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Employee, Project } from '../types';
-import { EMPLOYEES, RACI_TEMPLATES } from '../constants';
 import {
     Users, User, Mail, Phone, Briefcase, Award,
     ChevronDown, ChevronRight, Plus, Search, Filter,
@@ -107,11 +106,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ employee, role, allocation }) =
 
 const ProjectPersonnelTab: React.FC<ProjectPersonnelTabProps> = ({ project, members, raciData }) => {
     // Get RACI template based on capital source
-    const raciTemplate = (raciData && raciData.length > 0)
-        ? raciData
-        : (project.capitalSource === 'StateBudget'
-            ? RACI_TEMPLATES.StateBudget
-            : RACI_TEMPLATES.NonStateBudget);
+    const raciTemplate = raciData && raciData.length > 0 ? raciData : [];
 
     const [activeView, setActiveView] = useState<'team' | 'raci'>('team');
     const [searchQuery, setSearchQuery] = useState('');
@@ -133,11 +128,7 @@ const ProjectPersonnelTab: React.FC<ProjectPersonnelTabProps> = ({ project, memb
     ))].slice(0, 8); // Limit to 8 columns for display
 
     // Mock team members from EMPLOYEES if members is empty
-    const teamMembers = members.length > 0 ? members : EMPLOYEES.slice(0, 8).map((emp, idx) => ({
-        ...emp,
-        projectRole: ['QLDA', 'QL BIM', 'ĐPBM', 'TBM', 'TNDH', 'NDH', 'TBP ADMIN', 'TBP XTDA'][idx] || 'TNDH',
-        allocation: Math.floor(Math.random() * 60) + 40
-    }));
+    const teamMembers = members;
 
     const filteredMembers = teamMembers.filter(m =>
         m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -3,7 +3,6 @@ import { Task, Employee, TaskPriority, TaskStatus } from '../types';
 import { X, Sparkles, User, Users, Calendar, Tag, AlertCircle, Check, Trash2, MessageSquare, Paperclip, Send, FileText, Download, CheckSquare, Plus, ClipboardCheck, CheckCircle } from 'lucide-react';
 import { ProjectService } from '../services/project.service';
 import { AIService, ResourceRecommendation } from '../services/AIService';
-import { EMPLOYEES } from '../constants';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -15,7 +14,7 @@ interface TaskModalProps {
     taskToEdit?: Task | null;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete, projectId, employees = EMPLOYEES, taskToEdit }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete, projectId, employees = [], taskToEdit }) => {
     const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'files' | 'checklist'>('info');
     const [taskName, setTaskName] = useState('');
     const [dueDate, setDueDate] = useState('');
@@ -27,7 +26,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [attachments, setAttachments] = useState<any[]>([]);
-    const [subtasks, setSubtasks] = useState<{ id: string, title: string, completed: boolean }[]>([]);
+    const [subtasks, setSubtasks] = useState<any[]>([]);
     const [newSubtask, setNewSubtask] = useState('');
 
     // Checklist State
@@ -45,9 +44,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
                 setDueDate(taskToEdit.dueDate || '');
                 setPriority(taskToEdit.priority as TaskPriority);
                 setStatus(taskToEdit.status || TaskStatus.OPEN);
-                // Find assignee based on name if ID not present (legacy mock data issue)
-                // Ideally task should have assigneeId. Here we check by name match to sync with EMPLOYEES
-                const emp = employees.find(e => e.name === taskToEdit.assignee?.name);
+                // Find assignee based on id or name (for backward compatibility if id is missing in older data)
+                const emp = employees.find(e => e.id === taskToEdit.assignee?.id || e.name === taskToEdit.assignee?.name);
                 setAssigneeId(emp ? emp.id : '');
 
                 // Load existing or mock comments/files
@@ -184,7 +182,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
             dueDate: dueDate,
             priority: priority,
             projectId: projectId,
-            status: status,
+            status: status as TaskStatus,
             assignee: selectedEmp ? {
                 name: selectedEmp.name,
                 avatar: selectedEmp.avatar,

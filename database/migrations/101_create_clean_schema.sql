@@ -15,6 +15,13 @@ CREATE TABLE public.employees (
     department TEXT,
     avatar TEXT,
     status TEXT DEFAULT 'Active',
+    join_date DATE,
+    dob DATE,
+    degree TEXT,
+    certificates TEXT,
+    graduation_year TEXT,
+    profile_url TEXT,
+    skills TEXT[],
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

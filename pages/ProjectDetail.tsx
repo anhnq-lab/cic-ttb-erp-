@@ -289,11 +289,11 @@ const ProjectDetail = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <Header title="Quản lý Dự án BIM" breadcrumb={`Dự án / ${project.code}`} />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-slate-50/50">
-          <div className="max-w-7xl mx-auto space-y-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50/50">
+          <div className="max-w-[95%] mx-auto space-y-8">
 
             {/* --- ULTIMATE PROJECT HERO --- */}
-            <div className="group relative rounded-[2rem] overflow-hidden border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] bg-slate-900 min-h-[400px] animate-fade-in-up">
+            <div className="group relative rounded-[2.5rem] overflow-hidden border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] bg-slate-900 min-h-[320px] animate-fade-in-up">
               {/* Background Layers */}
               <div className="absolute inset-0 z-0">
                 <img
@@ -321,8 +321,8 @@ const ProjectDetail = () => {
 
                     <div className="flex flex-wrap gap-3">
                       <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] backdrop-blur-xl border-t border-white/20 shadow-xl ${project.status === ProjectStatus.COMPLETED ? 'bg-emerald-500/30 text-emerald-300' :
-                          project.status === ProjectStatus.DELAYED ? 'bg-rose-500/30 text-rose-300' :
-                            'bg-indigo-500/30 text-indigo-300'
+                        project.status === ProjectStatus.DELAYED ? 'bg-rose-500/30 text-rose-300' :
+                          'bg-indigo-500/30 text-indigo-300'
                         }`}>
                         {project.status}
                       </span>

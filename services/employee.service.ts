@@ -4,7 +4,7 @@
 
 import { supabase } from '../utils/supabaseClient';
 import { Employee } from '../types';
-import { EMPLOYEES } from '../constants'; // Fallback
+
 
 const mapEmployeeFromDB = (e: any): Employee => ({
     id: e.id,
@@ -63,7 +63,7 @@ export const EmployeeService = {
 
         if (error) {
             console.error('Error fetching employees:', error);
-            return EMPLOYEES;
+            return [];
         }
         return data.map(mapEmployeeFromDB);
     },
