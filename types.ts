@@ -510,3 +510,22 @@ export interface TimesheetLog {
   workType?: 'Modeling' | 'Review' | 'Meeting' | 'Coordination' | 'Other';
   created_at?: string;
 }
+
+// ==========================================
+// KANBAN & GANTT INTERFACES
+// ==========================================
+
+/**
+ * GanttTask interface for Frappe Gantt library
+ * Used by TaskService.getTasksForGantt()
+ */
+export interface GanttTask {
+  id: string;
+  name: string;
+  start: string; // YYYY-MM-DD format
+  end: string;   // YYYY-MM-DD format
+  progress: number; // 0-100
+  custom_class: string; // CSS class for color coding (bar-s0, bar-s1, etc.)
+  dependencies?: string; // Comma-separated task IDs (optional, for future use)
+}
+

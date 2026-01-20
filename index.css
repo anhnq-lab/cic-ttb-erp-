@@ -27,3 +27,130 @@ input, select, textarea, button {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8; 
 }
+
+/* ==========================================
+   KANBAN BOARD STYLES
+   ========================================== */
+
+.kanban-board-container {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.kanban-column {
+  transition: background-color 0.2s;
+}
+
+.kanban-column-cards {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.kanban-column-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kanban-column-cards::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.kanban-column-cards::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.kanban-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+/* Drag states */
+.kanban-card.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+/* ==========================================
+   GANTT CHART STYLES
+   ========================================== */
+
+.gantt-wrapper {
+  min-height: 400px;
+}
+
+/* Gantt popup custom styles */
+.gantt-popup {
+  padding: 0.5rem;
+}
+
+.gantt-popup h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.gantt-popup p {
+  margin: 0.25rem 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+/* Custom task bar colors based on status */
+.gantt .bar-wrapper.bar-critical .bar {
+  fill: #ef4444 !important;
+}
+
+.gantt .bar-wrapper.bar-high .bar {
+  fill: #f97316 !important;
+}
+
+.gantt .bar-wrapper.bar-s0 .bar {
+  fill: #eab308 !important;
+}
+
+.gantt .bar-wrapper.bar-s1 .bar {
+  fill: #3b82f6 !important;
+}
+
+.gantt .bar-wrapper.bar-s2 .bar {
+  fill: #06b6d4 !important;
+}
+
+.gantt .bar-wrapper.bar-s3 .bar {
+  fill: #8b5cf6 !important;
+}
+
+.gantt .bar-wrapper.bar-s4 .bar {
+  fill: #a855f7 !important;
+}
+
+.gantt .bar-wrapper.bar-s5 .bar {
+  fill: #ec4899 !important;
+}
+
+.gantt .bar-wrapper.bar-s6 .bar {
+  fill: #0ea5e9 !important;
+}
+
+.gantt .bar-wrapper.bar-completed .bar {
+  fill: #22c55e !important;
+}
+
+.gantt .bar-wrapper.bar-default .bar {
+  fill: #6b7280 !important;
+}
+
+/* Today marker */
+.gantt .today-highlight {
+  stroke: #ef4444;
+  stroke-width: 2px;
+  opacity: 0.8;
+}
+

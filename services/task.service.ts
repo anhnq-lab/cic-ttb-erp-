@@ -567,7 +567,229 @@ export const TaskService = {
         });
 
         return stats;
+    },
+
+    /**
+     * ==================== KANBAN \u0026 GANTT FEATURES ====================
+     * Added for Phase 01: Backend Permission Logic
+     */
+
+    /**
+     * Check if user can move a task (for Kanban drag-drop)
+     */
+    canMoveTask: async (userId: string, taskId: string, projectId: string): Promise<boolean> => {
+        if (!supabase) {
+            console.error('❌ Supabase client is null');
+            return false;
+        }
+
+        try {
+            // Get task details
+            const { data: task, error: taskError } = await supabase
+                .from('tasks')
+                .select('assignee_id')
+                .eq('id', taskId)
+                .single();
+
+            if (taskError || !task) {
+                console.error('❌ Error fetching task:', taskError);
+                return false;
+            }
+
+            // Get project details
+            const { data: project, error: projectError } = await supabase
+                .from('projects')
+                .select('manager_id')
+                .eq('id', projectId)
+                .single();
+
+            if (projectError || !project) {
+                console.error('❌ Error fetching project:', projectError);
+                return false;
+            }
+
+            // Get user role
+            const { data: employee, error: employeeError } = await supabase
+                .from('employees')
+                .select('role')
+                .eq('id', userId)
+                .single();
+
+            if (employeeError || !employee) {
+                console.error('❌ Error fetching employee:', employeeError);
+                return false;
+            }
+
+            // Permission logic:
+            // 1. Task assignee can move their own task
+            // 2. Project manager can move any task in their project
+            // 3. Admin or Giám đốc can move any task
+            const isAssignee = task.assignee_id === userId;
+            const isProjectManager = project.manager_id === userId;
+            const isAdmin = employee.role === 'Admin' || employee.role === 'Giám đốc';
+
+            const canMove = isAssignee || isProjectManager || isAdmin;
+
+            console.log(`✅ Permission check: userId=${userId}, taskId=${taskId}, canMove=${canMove}`);
+            return canMove;
+        } catch (err) {
+            console.error('❌ Exception in canMoveTask:', err);
+            return false;
+        }
+    },
+
+    /**
+     * Update task status with confirmation (for Kanban drag-drop)
+     * Returns success status and updated task or error message
+     */
+    updateTaskStatusWithConfirmation: async (
+        taskId: string,
+        newStatus: string,
+        userId: string,
+        notes?: string
+    ): Promise<{ success: boolean; task?: any; error?: string }> => {
+        if (!supabase) {
+            return { success: false, error: 'Supabase client not configured' };
+        }
+
+        try {
+            // Get old task data
+            const { data: oldTask, error: fetchError } = await supabase
+                .from('tasks')
+                .select('*, project:projects!project_id(id, code, name)')
+                .eq('id', taskId)
+                .single();
+
+            if (fetchError || !oldTask) {
+                return { success: false, error: 'Task not found' };
+            }
+
+            // Check permission
+            const canMove = await TaskService.canMoveTask(userId, taskId, oldTask.project_id);
+            if (!canMove) {
+                return { success: false, error: 'Không có quyền thay đổi task này' };
+            }
+
+            // Update task status
+            const { data: updatedTask, error: updateError } = await supabase
+                .from('tasks')
+                .update({
+                    status: newStatus,
+                    last_modified_by: userId,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', taskId)
+                .select(`
+                    *,
+                    assignee_employee:employees!assignee_id(id, name, avatar, role),
+                    project:projects!project_id(id, code, name)
+                `)
+                .single();
+
+            if (updateError) {
+                console.error('❌ Error updating task:', updateError);
+                return { success: false, error: 'Lỗi cập nhật task' };
+            }
+
+            // Log history
+            const { error: historyError } = await supabase
+                .from('task_history')
+                .insert([{
+                    task_id: taskId,
+                    field_name: 'status',
+                    old_value: oldTask.status,
+                    new_value: newStatus,
+                    changed_by: userId,
+                    notes: notes || 'Moved via Kanban board'
+                }]);
+
+            if (historyError) {
+                console.warn('⚠️ Error logging history:', historyError);
+                // Don't fail the update if history logging fails
+            }
+
+            // Send Telegram notification
+            try {
+                await NotificationService.notifyTaskUpdated(
+                    updatedTask,
+                    [`Trạng thái: ${oldTask.status} → ${newStatus}`],
+                    updatedTask.assignee_employee?.name || 'Unknown'
+                );
+            } catch (notifError) {
+                console.warn('⚠️ Failed to send notification:', notifError);
+                // Don't fail the update if notification fails
+            }
+
+            console.log(`✅ Task status updated: ${taskId} (${oldTask.status} → ${newStatus})`);
+            return { success: true, task: updatedTask };
+        } catch (err) {
+            console.error('❌ Exception in updateTaskStatusWithConfirmation:', err);
+            return { success: false, error: 'Unexpected error occurred' };
+        }
+    },
+
+    /**
+     * Get tasks formatted for Gantt chart visualization
+     */
+    getTasksForGantt: async (projectId: string): Promise<any[]> => {
+        if (!supabase) {
+            console.error('❌ Supabase client is null');
+            return [];
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('id, code, name, start_date, due_date, progress, status, priority, phase')
+                .eq('project_id', projectId)
+                .is('deleted_at', null)
+                .order('start_date', { ascending: true });
+
+            if (error) {
+                console.error('❌ Error fetching tasks for Gantt:', error);
+                throw error;
+            }
+
+            // Format for Frappe Gantt
+            const ganttTasks = data.map(task => ({
+                id: task.id,
+                name: task.name || task.code,
+                start: task.start_date || new Date().toISOString().split('T')[0],
+                end: task.due_date || new Date().toISOString().split('T')[0],
+                progress: task.progress || 0,
+                custom_class: getGanttColorClass(task.status, task.priority),
+                // Optional: dependencies can be added here later
+                // dependencies: task.dependencies || ''
+            }));
+
+            console.log(`✅ Formatted ${ganttTasks.length} tasks for Gantt chart`);
+            return ganttTasks;
+        } catch (err) {
+            console.error('❌ Exception in getTasksForGantt:', err);
+            return [];
+        }
     }
 };
+
+/**
+ * Helper function to determine Gantt bar color based on status/priority
+ */
+function getGanttColorClass(status: string, priority: string): string {
+    // Priority-based coloring
+    if (priority === 'Khẩn cấp') return 'bar-critical';
+    if (priority === 'Cao') return 'bar-high';
+
+    // Status-based coloring
+    if (status === 'Hoàn thành') return 'bar-completed';
+    if (status?.startsWith('S0')) return 'bar-s0';
+    if (status?.startsWith('S1')) return 'bar-s1';
+    if (status?.startsWith('S2')) return 'bar-s2';
+    if (status?.startsWith('S3')) return 'bar-s3';
+    if (status?.startsWith('S4')) return 'bar-s4';
+    if (status?.startsWith('S5')) return 'bar-s5';
+    if (status?.startsWith('S6')) return 'bar-s6';
+
+    return 'bar-default';
+}
 
 export default TaskService;
