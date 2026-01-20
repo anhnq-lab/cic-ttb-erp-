@@ -6,8 +6,8 @@
 DO $$
 DECLARE
     task_rec RECORD;
-    emp_ids UUID[];
-    random_emp_id UUID;
+    emp_ids TEXT[];
+    random_emp_id TEXT;
     updated_count INTEGER := 0;
 BEGIN
     -- 1. Get all Active Employee IDs into an array

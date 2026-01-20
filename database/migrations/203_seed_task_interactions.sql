@@ -6,8 +6,8 @@
 DO $$
 DECLARE
     task_rec RECORD;
-    emp_ids UUID[];
-    random_emp_id UUID;
+    emp_ids TEXT[];
+    random_emp_id TEXT;
     comment_texts TEXT[] := ARRAY[
         'Đã nhận thông tin, sẽ xử lý sớm.',
         'Cần thêm thông tin về yêu cầu này.',
