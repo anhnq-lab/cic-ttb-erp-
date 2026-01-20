@@ -11,41 +11,20 @@ DECLARE
 BEGIN
     -- Loop qua tất cả contracts
     FOR contract_record IN 
-        SELECT id, code, total_value, contract_type
+        SELECT id, code, total_value
         FROM public.contracts
         WHERE total_value > 0
     LOOP
         -- Xóa milestones cũ nếu có
         DELETE FROM public.payment_milestones WHERE contract_id = contract_record.id;
         
-        -- Tạo milestones dựa vào contract type
-        IF contract_record.contract_type ILIKE '%tư vấn%' OR contract_record.contract_type ILIKE '%thiết kế%' THEN
-            -- Loại tư vấn/thiết kế: 30-40-20-10
-            INSERT INTO public.payment_milestones (contract_id, phase, condition, percentage, amount, status, completion_progress, due_date)
-            VALUES 
-                (contract_record.id, 'Đợt 1 - Tạm ứng', 'Sau khi ký hợp đồng', 30.00, contract_record.total_value * 0.30, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '60 days'),
-                (contract_record.id, 'Đợt 2 - Thiết kế cơ sở', 'Nghiệm thu thiết kế cơ sở', 40.00, contract_record.total_value * 0.40, 'Thanh toán một phần', 80, CURRENT_DATE - INTERVAL '30 days'),
-                (contract_record.id, 'Đợt 3 - Bản vẽ thi công', 'Nghiệm thu bản vẽ thi công', 20.00, contract_record.total_value * 0.20, 'Chưa thanh toán', 40, CURRENT_DATE + INTERVAL '30 days'),
-                (contract_record.id, 'Đợt 4 - Nghiệm thu', 'Bàn giao hoàn thành', 10.00, contract_record.total_value * 0.10, 'Chưa thanh toán', 0, CURRENT_DATE + INTERVAL '90 days');
-        
-        ELSIF contract_record.contract_type ILIKE '%xây dựng%' OR contract_record.contract_type ILIKE '%thi công%' THEN
-            -- Loại xây dựng: 20-30-30-20
-            INSERT INTO public.payment_milestones (contract_id, phase, condition, percentage, amount, status, completion_progress, due_date)
-            VALUES 
-                (contract_record.id, 'Đợt 1 - Khởi công', 'Sau khi khởi công', 20.00, contract_record.total_value * 0.20, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '90 days'),
-                (contract_record.id, 'Đợt 2 - Hoàn thành móng', 'Hoàn thành móng và cột', 30.00, contract_record.total_value * 0.30, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '60 days'),
-                (contract_record.id, 'Đợt 3 - Hoàn thành thô', 'Hoàn thành công trình thô', 30.00, contract_record.total_value * 0.30, 'Thanh toán một phần', 60, CURRENT_DATE - INTERVAL '20 days'),
-                (contract_record.id, 'Đợt 4 - Nghiệm thu', 'Bàn giao và nghiệm thu', 20.00, contract_record.total_value * 0.20, 'Chưa thanh toán', 0, CURRENT_DATE + INTERVAL '60 days');
-        
-        ELSE
-            -- Loại chuẩn: 25-25-25-25
-            INSERT INTO public.payment_milestones (contract_id, phase, condition, percentage, amount, status, completion_progress, due_date)
-            VALUES 
-                (contract_record.id, 'Đợt 1 - 25%', 'Thanh toán đợt 1', 25.00, contract_record.total_value * 0.25, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '75 days'),
-                (contract_record.id, 'Đợt 2 - 50%', 'Thanh toán đợt 2', 25.00, contract_record.total_value * 0.25, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '45 days'),
-                (contract_record.id, 'Đợt 3 - 75%', 'Thanh toán đợt 3', 25.00, contract_record.total_value * 0.25, 'Chưa thanh toán', 50, CURRENT_DATE + INTERVAL '15 days'),
-                (contract_record.id, 'Đợt 4 - 100%', 'Thanh toán cuối', 25.00, contract_record.total_value * 0.25, 'Chưa thanh toán', 0, CURRENT_DATE + INTERVAL '60 days');
-        END IF;
+        -- Tạo milestones theo tỷ lệ chuẩn 30-40-20-10 (phù hợp với tư vấn/thiết kế)
+        INSERT INTO public.payment_milestones (contract_id, phase, condition, percentage, amount, status, completion_progress, due_date)
+        VALUES 
+            (contract_record.id, 'Đợt 1 - Tạm ứng', 'Sau khi ký hợp đồng', 30.00, contract_record.total_value * 0.30, 'Đã thanh toán', 100, CURRENT_DATE - INTERVAL '60 days'),
+            (contract_record.id, 'Đợt 2 - Thiết kế cơ sở', 'Nghiệm thu thiết kế cơ sở', 40.00, contract_record.total_value * 0.40, 'Thanh toán một phần', 80, CURRENT_DATE - INTERVAL '30 days'),
+            (contract_record.id, 'Đợt 3 - Bản vẽ thi công', 'Nghiệm thu bản vẽ thi công', 20.00, contract_record.total_value * 0.20, 'Chưa thanh toán', 40, CURRENT_DATE + INTERVAL '30 days'),
+            (contract_record.id, 'Đợt 4 - Nghiệm thu', 'Bàn giao hoàn thành', 10.00, contract_record.total_value * 0.10, 'Chưa thanh toán', 0, CURRENT_DATE + INTERVAL '90 days');
         
         v_milestone_count := v_milestone_count + 4;
     END LOOP;
