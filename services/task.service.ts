@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabaseClient';
 import { Task, Employee, Project } from '../types';
+import { NotificationService } from './telegram.service';
 
 /**
  * Real Supabase-based Task Service
@@ -70,7 +71,7 @@ export const TaskService = {
     },
 
     /**
-     * Get tasks for a specific project
+     * Get tasks for a specific project (excluding soft-deleted)
      */
     getProjectTasks: async (projectId: string): Promise<Task[]> => {
         const { data, error } = await supabase
@@ -81,6 +82,7 @@ export const TaskService = {
                 reviewer_employee:employees!reviewer_id(id, name, avatar, role)
             `)
             .eq('project_id', projectId)
+            .is('deleted_at', null) // Only get non-deleted tasks
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -116,16 +118,21 @@ export const TaskService = {
     },
 
     /**
-     * Create a new task
+     * Create a new task with notification
      */
-    createTask: async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Promise<Task> => {
+    createTask: async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>, createdBy?: string): Promise<Task> => {
         const { data, error } = await supabase
             .from('tasks')
             .insert([{
                 ...task,
                 id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                last_modified_by: createdBy,
             }])
-            .select()
+            .select(`
+                *,
+                assignee_employee:employees!assignee_id(id, name, avatar, role),
+                project:projects!project_id(id, code, name)
+            `)
             .single();
 
         if (error) {
@@ -133,18 +140,48 @@ export const TaskService = {
             throw error;
         }
 
-        return data as Task;
+        const createdTask = data as any;
+
+        // Send Telegram notification
+        try {
+            if (createdTask.assignee_employee && createdTask.project) {
+                await NotificationService.notifyTaskCreated(
+                    createdTask,
+                    createdTask.project,
+                    createdTask.assignee_employee
+                );
+            }
+        } catch (notifError) {
+            console.error('Failed to send notification:', notifError);
+            // Don't fail task creation if notification fails
+        }
+
+        return createdTask as Task;
     },
 
     /**
-     * Update a task (with automatic history logging via trigger)
+     * Update a task (with automatic history logging via trigger + notifications)
      */
-    updateTask: async (taskId: string, updates: Partial<Task>): Promise<Task> => {
+    updateTask: async (taskId: string, updates: Partial<Task>, updatedBy?: string): Promise<Task> => {
+        // Get old task data to compare changes
+        const { data: oldTask } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .single();
+
         const { data, error } = await supabase
             .from('tasks')
-            .update(updates)
+            .update({
+                ...updates,
+                last_modified_by: updatedBy,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', taskId)
-            .select()
+            .select(`
+                *,
+                assignee_employee:employees!assignee_id(id, name, avatar, role)
+            `)
             .single();
 
         if (error) {
@@ -152,22 +189,111 @@ export const TaskService = {
             throw error;
         }
 
-        return data as Task;
+        const updatedTask = data as any;
+
+        // Detect changes for notification
+        if (oldTask) {
+            const changes: string[] = [];
+            if (oldTask.status !== updatedTask.status) changes.push(`Trạng thái: ${oldTask.status} → ${updatedTask.status}`);
+            if (oldTask.priority !== updatedTask.priority) changes.push(`Ưu tiên: ${oldTask.priority} → ${updatedTask.priority}`);
+            if (oldTask.assignee_id !== updatedTask.assignee_id) changes.push('Đổi người thực hiện');
+            if (oldTask.due_date !== updatedTask.due_date) changes.push(`Deadline: ${oldTask.due_date || 'N/A'} → ${updatedTask.due_date || 'N/A'}`);
+
+            // Send notification if significant changes
+            if (changes.length > 0) {
+                try {
+                    const updaterName = updatedBy || 'Hệ thống';
+                    await NotificationService.notifyTaskUpdated(updatedTask, changes, updaterName);
+                } catch (notifError) {
+                    console.error('Failed to send update notification:', notifError);
+                }
+            }
+
+            // Special notification for completion
+            if (oldTask.status !== 'Hoàn thành' && updatedTask.status === 'Hoàn thành') {
+                try {
+                    await NotificationService.notifyTaskCompleted(
+                        updatedTask,
+                        updatedTask.assignee_employee || { name: updatedBy || 'Unknown' }
+                    );
+                } catch (notifError) {
+                    console.error('Failed to send completion notification:', notifError);
+                }
+            }
+        }
+
+        return updatedTask as Task;
     },
 
     /**
-     * Delete a task
+     * Soft delete a task using stored procedure
      */
-    deleteTask: async (taskId: string): Promise<void> => {
+    deleteTask: async (taskId: string, deletedBy: string = 'unknown'): Promise<void> => {
+        const { error } = await supabase
+            .rpc('soft_delete_task', {
+                p_task_id: taskId,
+                p_deleted_by: deletedBy
+            });
+
+        if (error) {
+            console.error('Error soft deleting task:', error);
+            throw error;
+        }
+
+        console.log(`✅ Task ${taskId} soft deleted by ${deletedBy}`);
+    },
+
+    /**
+     * Restore a soft-deleted task
+     */
+    restoreTask: async (taskId: string, restoredBy: string = 'unknown'): Promise<void> => {
+        const { error } = await supabase
+            .rpc('restore_task', {
+                p_task_id: taskId,
+                p_restored_by: restoredBy
+            });
+
+        if (error) {
+            console.error('Error restoring task:', error);
+            throw error;
+        }
+
+        console.log(`✅ Task ${taskId} restored by ${restoredBy}`);
+    },
+
+    /**
+     * Permanently delete a task (hard delete - admin only)
+     */
+    permanentlyDeleteTask: async (taskId: string): Promise<void> => {
         const { error } = await supabase
             .from('tasks')
             .delete()
             .eq('id', taskId);
 
         if (error) {
-            console.error('Error deleting task:', error);
+            console.error('Error permanently deleting task:', error);
             throw error;
         }
+
+        console.log(`✅ Task ${taskId} permanently deleted`);
+    },
+
+    /**
+     * Check if user can access task
+     */
+    canUserAccessTask: async (userId: string, taskId: string): Promise<boolean> => {
+        const { data, error } = await supabase
+            .rpc('can_user_access_task', {
+                p_user_id: userId,
+                p_task_id: taskId
+            });
+
+        if (error) {
+            console.error('Error checking task access:', error);
+            return false;
+        }
+
+        return data as boolean;
     },
 
     /**
