@@ -293,6 +293,56 @@ const ProjectContractsTab: React.FC<ProjectContractsTabProps> = ({ project }) =>
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Transaction History */}
+                                    <div className="mt-6">
+                                        <h5 className="font-bold text-slate-800 flex items-center gap-2 text-sm border-b pb-2 mb-4">
+                                            <FileCheck size={16} className="text-blue-500" /> Lịch sử giao dịch
+                                        </h5>
+                                        {contract.transactions && contract.transactions.length > 0 ? (
+                                            <div className="overflow-x-auto border border-gray-100 rounded-lg">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-bold">
+                                                        <tr>
+                                                            <th className="px-4 py-3">Ngày thanh toán</th>
+                                                            <th className="px-4 py-3">Mô tả</th>
+                                                            <th className="px-4 py-3 text-right">Số tiền</th>
+                                                            <th className="px-4 py-3">Phương thức</th>
+                                                            <th className="px-4 py-3">Số HĐ</th>
+                                                            <th className="px-4 py-3 text-center">Trạng thái</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100">
+                                                        {contract.transactions.map((txn, idx) => (
+                                                            <tr key={txn.id || idx} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-3 font-medium text-slate-800">
+                                                                    {txn.paymentDate ? new Date(txn.paymentDate).toLocaleDateString('vi-VN') : '-'}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-gray-600">{txn.description || '-'}</td>
+                                                                <td className="px-4 py-3 text-right font-bold text-emerald-600">
+                                                                    {formatCurrency(txn.amount)}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-gray-600">{txn.paymentMethod || '-'}</td>
+                                                                <td className="px-4 py-3 text-gray-600 font-mono text-xs">{txn.invoiceNumber || '-'}</td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${String(txn.status) === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' :
+                                                                            String(txn.status) === 'Chưa thanh toán' ? 'bg-amber-100 text-amber-700' :
+                                                                                'bg-gray-100 text-gray-600'
+                                                                        }`}>
+                                                                        {String(txn.status)}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                                <p className="text-sm text-gray-500 italic">Chưa có giao dịch nào được ghi nhận</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Amendments */}
