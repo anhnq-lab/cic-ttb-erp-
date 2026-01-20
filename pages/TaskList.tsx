@@ -4,7 +4,7 @@ import TaskService from '../services/task.service';
 import { Task, TaskStatus, TaskPriority } from '../types';
 import {
     Search, Filter, Calendar, Kanban, List, BarChart2,
-    ChevronDown, MessageSquare, Paperclip, Clock, AlertCircle, CheckCircle2, Plus
+    ChevronDown, MessageSquare, Paperclip, Clock, AlertCircle, CheckCircle2, Plus, LayoutGrid
 } from 'lucide-react';
 import TaskDetailModal from '../components/TaskDetailModal';
 import AddTaskModal from '../components/AddTaskModal';
@@ -21,6 +21,7 @@ const TaskList = () => {
     });
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [isGrouped, setIsGrouped] = useState(false);
 
     useEffect(() => {
         fetchTasks();
@@ -116,6 +117,12 @@ const TaskList = () => {
                         <BarChart2 size={18} /> Gantt
                     </button>
                 </div>
+                <button
+                    onClick={() => setIsGrouped(!isGrouped)}
+                    className={`px-4 py-2 rounded-lg border border-slate-200 flex items-center gap-2 text-sm font-medium transition-all shadow-sm ${isGrouped ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+                >
+                    <LayoutGrid size={18} /> {isGrouped ? 'Đang nhóm' : 'Nhóm theo DA'}
+                </button>
             </div>
 
             {/* Metrics Cards */}
@@ -204,7 +211,7 @@ const TaskList = () => {
                     </div>
                 ) : (
                     <>
-                        {viewMode === 'list' && (
+                        {viewMode === 'list' && !isGrouped && (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
@@ -232,11 +239,34 @@ const TaskList = () => {
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm text-indigo-600 font-medium truncate max-w-[150px]">{task.project_id}</span>
+                                                        <span className="text-sm text-indigo-600 font-medium truncate max-w-[200px]" title={(task as any).project?.name || task.project_id}>
+                                                            {(task as any).project?.name || task.project_id}
+                                                        </span>
+                                                        {(task as any).project?.code && (
+                                                            <span className="text-xs text-slate-400">{(task as any).project?.code}</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className="text-sm text-slate-700">{task.assignee_name || 'Chưa gán'}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {(task as any).assignee_employee?.avatar ? (
+                                                            <img
+                                                                src={(task as any).assignee_employee?.avatar}
+                                                                alt={(task as any).assignee_employee?.name}
+                                                                className="w-6 h-6 rounded-full object-cover"
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent((task as any).assignee_employee?.name || 'User')}&background=random`;
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs text-slate-500 font-medium">
+                                                                {(task as any).assignee_employee?.name?.charAt(0) || '?'}
+                                                            </div>
+                                                        )}
+                                                        <span className="text-sm text-slate-700 truncate max-w-[150px]">
+                                                            {(task as any).assignee_employee?.name || task.assignee_name || 'Chưa gán'}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
@@ -258,6 +288,97 @@ const TaskList = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+
+                        {viewMode === 'list' && isGrouped && (
+                            <div className="space-y-8 p-6">
+                                {(Object.entries(filteredTasks.reduce((acc, task) => {
+                                    const projectId = (task as any).project?.id || 'unknown';
+                                    if (!acc[projectId]) {
+                                        acc[projectId] = {
+                                            info: (task as any).project || { name: 'Dự án khác', id: 'unknown' },
+                                            tasks: []
+                                        };
+                                    }
+                                    acc[projectId].tasks.push(task);
+                                    return acc;
+                                }, {} as Record<string, { info: any, tasks: any[] }>)) as [string, { info: any, tasks: any[] }][]).map(([projectId, group]) => (
+                                    <div key={projectId} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="bg-slate-50 p-4 border-b border-slate-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                                                    {(group.info.name || '?').charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-800 text-lg">{group.info.name || 'Dự án chưa xác định'}</h3>
+                                                    <p className="text-sm text-slate-500">{group.info.code || 'N/A'} • {group.tasks.length} công việc</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex -space-x-2">
+                                                {/* Unique assignees avatars preview */}
+                                                {Array.from(new Set(group.tasks.map(t => t.assignee_employee?.avatar).filter(Boolean))).slice(0, 5).map((avatar, i) => (
+                                                    <img key={i} src={avatar as string} className="w-8 h-8 rounded-full border-2 border-white" alt="Member" />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-white border-b border-slate-100 text-xs uppercase text-slate-500">
+                                                    <th className="p-4 font-semibold w-1/3">Tên công việc</th>
+                                                    <th className="p-4 font-semibold">Người thực hiện</th>
+                                                    <th className="p-4 font-semibold">Trạng thái</th>
+                                                    <th className="p-4 font-semibold">Độ ưu tiên</th>
+                                                    <th className="p-4 font-semibold">Hạn chót</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 bg-white">
+                                                {group.tasks.map((task) => (
+                                                    <tr
+                                                        key={task.id}
+                                                        onClick={() => setSelectedTask(task)}
+                                                        className="hover:bg-indigo-50/30 transition-colors cursor-pointer"
+                                                    >
+                                                        <td className="p-4">
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">{task.name}</p>
+                                                                <p className="text-xs text-slate-400 font-mono mt-0.5">{task.code}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex items-center gap-2">
+                                                                {(task as any).assignee_employee?.avatar ? (
+                                                                    <img src={(task as any).assignee_employee?.avatar} className="w-6 h-6 rounded-full" alt="" />
+                                                                ) : (
+                                                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs">{(task as any).assignee_employee?.name?.charAt(0) || '?'}</div>
+                                                                )}
+                                                                <span className="text-sm text-slate-700 truncate max-w-[150px]">
+                                                                    {(task as any).assignee_employee?.name || task.assignee_name || 'Chưa gán'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
+                                                                {task.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                                                                {task.priority || 'Thấp'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex items-center text-slate-600 text-sm">
+                                                                <Calendar size={14} className="mr-1.5 text-slate-400" />
+                                                                {task.due_date ? new Date(task.due_date).toLocaleDateString('vi-VN') : '-'}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
