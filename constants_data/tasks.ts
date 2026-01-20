@@ -42,12 +42,59 @@ export const SAMPLE_TASKS: Task[] = [
         projectId: "P-001",
         assignee: { id: "NV018", name: "Nguyễn Bá Nhiệm", avatar: "https://ui-avatars.com/api/?name=Nguyễn+Bá+Nhiệm&background=random", role: "Modeler" },
         reviewer: "NV007",
-        status: TaskStatus.PENDING,
+        status: TaskStatus.S1, // CHANGED to S1 - Phối hợp
         priority: TaskPriority.MEDIUM,
         startDate: "2025-03-01",
         dueDate: "2025-05-15",
-        progress: 10,
+        progress: 20,
         tags: ["Revit", "MEP", "LOD350"],
+        phase: "Triển khai Hỗ trợ QLDA"
+    },
+
+    // --- NEW TASKS for S1, S2, S4 columns ---
+    {
+        id: "T-001-04",
+        code: "TKBVTC.COORD.001",
+        name: "Phối hợp 3 bộ môn ARC-STR-MEP",
+        projectId: "P-001",
+        assignee: { id: "NV011", name: "Kim Thu Huyền", avatar: "https://ui-avatars.com/api/?name=Kim+Thu+Huyền&background=random", role: "Coordinator" },
+        reviewer: "NV006",
+        status: TaskStatus.S1, // S1 - Phối hợp
+        priority: TaskPriority.HIGH,
+        startDate: "2025-03-10",
+        dueDate: "2025-03-25",
+        progress: 50,
+        tags: ["Coordination", "Navisworks"],
+        phase: "Triển khai Hỗ trợ QLDA"
+    },
+    {
+        id: "T-001-05",
+        code: "TKBVTC.QC.001",
+        name: "Kiểm tra chéo mô hình Kiến trúc",
+        projectId: "P-001",
+        assignee: { id: "NV009", name: "Hoàng Thị Thùy", avatar: "https://ui-avatars.com/api/?name=Hoàng+Thị+Thùy&background=random", role: "QC" },
+        reviewer: "NV006",
+        status: TaskStatus.S2, // S2 - Kiểm tra chéo
+        priority: TaskPriority.HIGH,
+        startDate: "2025-03-18",
+        dueDate: "2025-03-22",
+        progress: 80,
+        tags: ["QC", "Review"],
+        phase: "Triển khai Hỗ trợ QLDA"
+    },
+    {
+        id: "T-001-06",
+        code: "TKBVTC.CLASH.001",
+        name: "Báo cáo Clash Detection",
+        projectId: "P-001",
+        assignee: { id: "NV011", name: "Kim Thu Huyền", avatar: "https://ui-avatars.com/api/?name=Kim+Thu+Huyền&background=random", role: "Coordinator" },
+        reviewer: "NV006",
+        status: TaskStatus.S4, // S4 - Lãnh đạo duyệt
+        priority: TaskPriority.CRITICAL,
+        startDate: "2025-03-21",
+        dueDate: "2025-03-25",
+        progress: 95,
+        tags: ["Report", "Navisworks", "Clash"],
         phase: "Triển khai Hỗ trợ QLDA"
     },
 
