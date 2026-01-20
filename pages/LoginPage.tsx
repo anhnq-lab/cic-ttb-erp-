@@ -33,6 +33,12 @@ const LoginPage: React.FC = () => {
     }, []);
 
     const handleAutoFill = async () => {
+        // SECURITY: Only allow in development mode
+        if (import.meta.env.PROD) {
+            setError('Tính năng này chỉ khả dụng ở chế độ development');
+            return;
+        }
+
         const autoEmail = 'admin@cic.com.vn';
         const autoPass = '123'; // Trying 123 as seen in constants.ts
         setEmail(autoEmail);

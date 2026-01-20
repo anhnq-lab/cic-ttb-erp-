@@ -4,6 +4,7 @@ console.log('App.tsx starting...');
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -34,104 +35,106 @@ const AuthenticatedLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
 const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public Route - Login */}
-          <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Route - Login */}
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <Dashboard />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/projects" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <ProjectList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/projects/:id" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <ProjectDetail />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/tasks" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <TaskList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/contracts" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <ContractList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/hr" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <HRMList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/crm" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <CRMList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/my-dashboard" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <MyDashboard />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/knowledge-base" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <KnowledgeBase />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/policy" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <PolicyViewer />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/daily-reports" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <DailyReportList />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
+            {/* Protected Routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Dashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/projects" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <ProjectList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/projects/:id" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <ProjectDetail />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tasks" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <TaskList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/contracts" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <ContractList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/hr" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <HRMList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/crm" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <CRMList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/my-dashboard" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <MyDashboard />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/knowledge-base" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <KnowledgeBase />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/policy" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <PolicyViewer />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/daily-reports" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <DailyReportList />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
 
-          <Route path="/reports" element={
-            <ProtectedRoute>
-              <AuthenticatedLayout>
-                <Reports />
-              </AuthenticatedLayout>
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </Router>
-    </AuthProvider>
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <Reports />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

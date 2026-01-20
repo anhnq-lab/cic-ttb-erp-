@@ -54,6 +54,45 @@ const mapProjectToDB = (p: Partial<Project>) => ({
     capital_source: p.capitalSource || 'NonStateBudget'
 });
 
+// --- VALIDATION HELPERS ---
+const validateManagerExists = async (managerId: string): Promise<boolean> => {
+    if (!managerId) return true; // Allow empty manager
+
+    const { data, error } = await supabase
+        .from('employees')
+        .select('id, name')
+        .eq('id', managerId)
+        .single();
+
+    if (error || !data) {
+        throw new Error(`Manager với ID "${managerId}" không tồn tại trong hệ thống`);
+    }
+
+    console.log(`✅ Manager validated: ${data.name}`);
+    return true;
+};
+
+const validateProjectData = async (project: Partial<Project>): Promise<void> => {
+    // Validate required fields
+    if (!project.name) {
+        throw new Error('Tên dự án không được để trống');
+    }
+
+    if (!project.code) {
+        throw new Error('Mã dự án không được để trống');
+    }
+
+    // Validate manager if provided
+    if (project.manager) {
+        await validateManagerExists(project.manager);
+    }
+
+    // Validate budget > 0
+    if (project.budget && project.budget < 0) {
+        throw new Error('Ngân sách phải lớn hơn 0');
+    }
+};
+
 export const ProjectService = {
     // --- PROJECT METHODS ---
 
@@ -123,32 +162,40 @@ export const ProjectService = {
     },
 
     createProject: async (project: Project): Promise<Project | null> => {
-        const dbPayload = mapProjectToDB(project);
-        // Remove undefined fields
-        Object.keys(dbPayload).forEach(key => (dbPayload as any)[key] === undefined && delete (dbPayload as any)[key]);
-
-        const { data, error } = await supabase
-            .from('projects')
-            .insert([dbPayload])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating project:', error);
-            return null;
-        }
-
-        const newProject = mapProjectFromDB(data);
-
-        // --- AUTOMATIC TASK GENERATION ---
         try {
-            await ProjectService.generateTasksFromTemplate(newProject.id, project.capitalSource || 'NonStateBudget', project.deadline);
-        } catch (taskError) {
-            console.error('Error generating automatic tasks:', taskError);
-            // Don't fail the project creation if task gen fails, but log it
-        }
+            // VALIDATE DATA FIRST
+            await validateProjectData(project);
 
-        return newProject;
+            const dbPayload = mapProjectToDB(project);
+            // Remove undefined fields
+            Object.keys(dbPayload).forEach(key => (dbPayload as any)[key] === undefined && delete (dbPayload as any)[key]);
+
+            const { data, error } = await supabase
+                .from('projects')
+                .insert([dbPayload])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error creating project:', error);
+                throw new Error(error.message || 'Lỗi khi tạo dự án');
+            }
+
+            const newProject = mapProjectFromDB(data);
+
+            // --- AUTOMATIC TASK GENERATION ---
+            try {
+                await ProjectService.generateTasksFromTemplate(newProject.id, project.capitalSource || 'NonStateBudget', project.deadline);
+            } catch (taskError) {
+                console.error('Error generating automatic tasks:', taskError);
+                // Don't fail the project creation if task gen fails, but log it
+            }
+
+            return newProject;
+        } catch (validationError: any) {
+            console.error('Project validation failed:', validationError);
+            throw validationError; // Re-throw to caller can handle
+        }
     },
 
     generateTasksFromTemplate: async (projectId: string, capitalSource: string, projectStartDate?: string) => {
@@ -210,22 +257,32 @@ export const ProjectService = {
     },
 
     updateProject: async (id: string, updates: Partial<Project>): Promise<Project | null> => {
-        const dbPayload = mapProjectToDB(updates);
-        // Remove undefined fields
-        Object.keys(dbPayload).forEach(key => (dbPayload as any)[key] === undefined && delete (dbPayload as any)[key]);
+        try {
+            // VALIDATE DATA BEFORE UPDATE
+            if (updates.manager !== undefined) {
+                await validateManagerExists(updates.manager);
+            }
 
-        const { data, error } = await supabase
-            .from('projects')
-            .update(dbPayload)
-            .eq('id', id)
-            .select()
-            .single();
+            const dbPayload = mapProjectToDB(updates);
+            // Remove undefined fields
+            Object.keys(dbPayload).forEach(key => (dbPayload as any)[key] === undefined && delete (dbPayload as any)[key]);
 
-        if (error) {
-            console.error('Error updating project:', error);
-            return null;
+            const { data, error } = await supabase
+                .from('projects')
+                .update(dbPayload)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error updating project:', error);
+                throw new Error(error.message || 'Lỗi khi cập nhật dự án');
+            }
+            return mapProjectFromDB(data);
+        } catch (validationError: any) {
+            console.error('Project update validation failed:', validationError);
+            throw validationError;
         }
-        return mapProjectFromDB(data);
     },
 
     deleteProject: async (id: string): Promise<boolean> => {

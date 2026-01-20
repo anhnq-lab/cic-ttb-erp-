@@ -46,6 +46,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // TIMEOUT PROTECTION: Force loading to false after 5 seconds max
+        const LOADING_TIMEOUT = 5000;
+        const timeoutId = setTimeout(() => {
+            if (loading) {
+                console.warn('⏰ TIMEOUT: Loading took too long, forcing loading = false');
+                setLoading(false);
+            }
+        }, LOADING_TIMEOUT);
+
         // 1. Check active session
         const initSession = async () => {
             console.log('🔄 AuthContext: initSession started');
@@ -53,53 +62,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (!supabase) {
                     console.warn('⚠️ Supabase client not initialized - using unauthenticated mode');
                     setLoading(false);
+                    clearTimeout(timeoutId);
                     return;
                 }
 
-                // AUTO-LOGIN FOR DEVELOPMENT
-                const isDevelopment = import.meta.env.DEV;
-                const autoLoginEmail = 'admin@cic.com.vn';
-                const autoLoginPassword = 'admin123';
+                // Check existing session first
+                const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
 
-                if (isDevelopment) {
-                    console.log('🔧 DEV MODE: Checking for auto-login...');
-
-                    // Check if already logged in
-                    const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
-
-                    if (!existingSession && !sessionError) {
-                        console.log('🔐 DEV MODE: Auto-logging in as admin...');
-                        const { error: signInError } = await supabase.auth.signInWithPassword({
-                            email: autoLoginEmail,
-                            password: autoLoginPassword
-                        });
-
-                        if (signInError) {
-                            console.warn('⚠️  DEV MODE: Auto-login failed:', signInError.message);
-                        } else {
-                            console.log('✅ DEV MODE: Auto-login successful!');
-                            // Session will be updated by onAuthStateChange
-                        }
-                    } else if (existingSession) {
-                        console.log('✅ DEV MODE: Already logged in as', existingSession.user.email);
-                    }
+                if (sessionError) {
+                    console.error('❌ Session check error:', sessionError);
+                    setLoading(false);
+                    clearTimeout(timeoutId);
+                    return;
                 }
 
-                // Normal session check
-                const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-
+                // If session exists, use it
                 if (existingSession) {
+                    console.log('✅ Found existing session for', existingSession.user.email);
                     setSession(existingSession);
                     setUser(existingSession.user);
                     await fetchProfile(existingSession.user);
-                } else {
+                    setLoading(false);
+                    clearTimeout(timeoutId);
+                    return;
+                }
+
+                // AUTO-LOGIN FOR DEVELOPMENT (only if no existing session)
+                const isDevelopment = import.meta.env.DEV;
+                if (isDevelopment) {
+                    console.log('🔧 DEV MODE: No session found, attempting auto-login...');
+                    const autoLoginEmail = 'admin@cic.com.vn';
+                    const autoLoginPassword = 'admin123';
+
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                        email: autoLoginEmail,
+                        password: autoLoginPassword
+                    });
+
+                    if (signInError) {
+                        console.warn('⚠️ DEV MODE: Auto-login failed:', signInError.message);
+                    } else {
+                        console.log('✅ DEV MODE: Auto-login successful!');
+                        // Session will be updated by onAuthStateChange
+                    }
+                }
+
+                // If no session after auto-login attempt
+                if (!existingSession) {
                     console.log('ℹ️ No active session found');
                 }
             } catch (error) {
-                console.error('❌ Session check error:', error);
+                console.error('❌ Session init error:', error);
             } finally {
                 setLoading(false);
+                clearTimeout(timeoutId);
                 console.log('🏁 AuthContext: initSession finished, loading = false');
             }
         };
@@ -119,12 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setProfile(null);
                 }
                 setLoading(false);
+                clearTimeout(timeoutId);
             });
 
-            return () => subscription.unsubscribe();
+            return () => {
+                subscription.unsubscribe();
+                clearTimeout(timeoutId);
+            };
         } else {
             console.warn('⚠️ Supabase unavailable - auth listeners skipped');
             setLoading(false);
+            clearTimeout(timeoutId);
         }
     }, []);
 
