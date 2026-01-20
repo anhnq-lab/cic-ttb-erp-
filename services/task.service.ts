@@ -297,6 +297,52 @@ export const TaskService = {
     },
 
     /**
+     * Get task comments
+     */
+    getTaskComments: async (taskId: string) => {
+        const { data, error } = await supabase
+            .from('task_comments')
+            .select(`
+                *,
+                employee:employees!user_id(id, name, avatar)
+            `)
+            .eq('task_id', taskId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching comments:', error);
+            throw error;
+        }
+
+        return data;
+    },
+
+    /**
+     * Add a comment to a task
+     */
+    addTaskComment: async (taskId: string, content: string, employeeId: string) => {
+        const { data, error } = await supabase
+            .from('task_comments')
+            .insert([{
+                task_id: taskId,
+                content: content,
+                user_id: employeeId
+            }])
+            .select(`
+                *,
+                employee:employees!user_id(id, name, avatar)
+            `)
+            .single();
+
+        if (error) {
+            console.error('Error adding comment:', error);
+            throw error;
+        }
+
+        return data;
+    },
+
+    /**
      * Get task history
      */
     getTaskHistory: async (taskId: string): Promise<TaskHistory[]> => {

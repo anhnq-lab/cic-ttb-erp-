@@ -30,7 +30,7 @@ BEGIN
         random_emp_id := COALESCE(task_rec.assignee_id, emp_ids[floor(random() * array_length(emp_ids, 1)) + 1]);
         random_comment := comment_texts[floor(random() * array_length(comment_texts, 1)) + 1];
 
-        INSERT INTO public.task_comments (task_id, employee_id, content, created_at)
+        INSERT INTO public.task_comments (task_id, user_id, content, created_at)
         VALUES (
             task_rec.id,
             random_emp_id,
