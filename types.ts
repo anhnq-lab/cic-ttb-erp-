@@ -420,14 +420,21 @@ export interface SOPStep {
   created_at?: string;
 }
 
+export interface ChecklistLogResult {
+  item_id: string;
+  checked: boolean;
+  note?: string;
+  attachment_url?: string;
+}
+
 export interface ChecklistLog {
   id: string;
   taskId: string;
-  checklistId: string;
-  itemId: string;
-  status: boolean;
-  checkedBy?: string;
-  checkedAt?: string;
+  templateId: string;
+  results: ChecklistLogResult[];
+  completedBy: string;
+  completedAt: string;
+  status: 'Draft' | 'Completed' | string;
 }
 
 export interface LessonLearned {

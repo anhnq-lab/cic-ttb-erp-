@@ -17,8 +17,8 @@ const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 const hasConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
 // Create Supabase client
-console.log('Supabase URL:', supabaseUrl.slice(0, 20) + '...');
-console.log('Supabase Key:', supabaseAnonKey.slice(0, 20) + '...');
+console.log('Supabase URL:', (supabaseUrl || '').slice(0, 20) + '...');
+console.log('Supabase Key:', (supabaseAnonKey || '').slice(0, 20) + '...');
 
 export const supabase = hasConfig
     ? createClient(supabaseUrl, supabaseAnonKey, {

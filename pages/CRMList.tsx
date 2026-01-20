@@ -623,18 +623,15 @@ const CRMList = () => {
             const sideA = contract.sideAName?.trim();
             if (sideA && !existingNames.has(sideA.toLowerCase()) && !sideA.includes('CIC')) {
                 await CRMService.createCustomer({
-                    id: `CUST-${Date.now()}-${Math.random()}`,
-                    code: `CUST-${Date.now().toString().slice(-4)}`,
+                    code: `CUST-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`,
                     name: sideA,
                     shortName: sideA.split(' ').slice(0, 2).join(' ').toUpperCase(),
                     type: 'Client',
                     status: 'Active',
                     tier: 'Standard',
                     category: 'Other',
-                    rating: 5,
                     totalProjectValue: contracts.filter(c => c.sideAName === sideA).reduce((sum, c) => sum + (c.totalValue || 0), 0),
-                    logo: 'https://ui-avatars.com/api/?background=random&name=' + encodeURIComponent(sideA),
-                    created_at: new Date().toISOString()
+                    logo: 'https://ui-avatars.com/api/?background=random&name=' + encodeURIComponent(sideA)
                 } as any);
                 existingNames.add(sideA.toLowerCase());
                 addedCount++;
@@ -644,18 +641,15 @@ const CRMList = () => {
             const sideB = contract.sideBName?.trim();
             if (sideB && !existingNames.has(sideB.toLowerCase()) && !sideB.includes('CIC')) {
                 await CRMService.createCustomer({
-                    id: `PART-${Date.now()}-${Math.random()}`,
-                    code: `PART-${Date.now().toString().slice(-4)}`,
+                    code: `PART-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 100)}`,
                     name: sideB,
                     shortName: sideB.split(' ').slice(0, 2).join(' ').toUpperCase(),
                     type: 'Partner',
                     status: 'Active',
                     tier: 'Standard',
                     category: 'Other',
-                    rating: 5,
                     totalProjectValue: contracts.filter(c => c.sideBName === sideB).reduce((sum, c) => sum + (c.totalValue || 0), 0),
-                    logo: 'https://ui-avatars.com/api/?background=random&name=' + encodeURIComponent(sideB),
-                    created_at: new Date().toISOString()
+                    logo: 'https://ui-avatars.com/api/?background=random&name=' + encodeURIComponent(sideB)
                 } as any);
                 existingNames.add(sideB.toLowerCase());
                 addedCount++;

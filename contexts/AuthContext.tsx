@@ -48,7 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         // 1. Check active session
         const initSession = async () => {
+            console.log('🔄 AuthContext: initSession started');
             try {
+                if (!supabase) {
+                    console.warn('⚠️ Supabase client not initialized - using unauthenticated mode');
+                    setLoading(false);
+                    return;
+                }
+
                 // AUTO-LOGIN FOR DEVELOPMENT
                 const isDevelopment = import.meta.env.DEV;
                 const autoLoginEmail = 'admin@cic.com.vn';
@@ -68,74 +75,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         });
 
                         if (signInError) {
-                            console.warn('⚠️  DEV MODE: Auto-login failed, creating account...', signInError.message);
-                            // If user doesn't exist, try to create it
-                            const { error: signUpError } = await supabase.auth.signUp({
-                                email: autoLoginEmail,
-                                password: autoLoginPassword,
-                                options: {
-                                    data: {
-                                        full_name: 'Admin User',
-                                        role: 'Admin'
-                                    }
-                                }
-                            });
-                            if (signUpError) {
-                                console.error('❌ DEV MODE: Auto signup failed:', signUpError);
-                            } else {
-                                console.log('✅ DEV MODE: Account created, please verify email if needed');
-                            }
+                            console.warn('⚠️  DEV MODE: Auto-login failed:', signInError.message);
                         } else {
                             console.log('✅ DEV MODE: Auto-login successful!');
+                            // Session will be updated by onAuthStateChange
                         }
-                        // Fetch session again after login
-                        const { data: { session: newSession } } = await supabase.auth.getSession();
-                        setSession(newSession);
-                        setUser(newSession?.user ?? null);
-                        if (newSession?.user) {
-                            await fetchProfile(newSession.user);
-                        }
-                        setLoading(false);
-                        return;
                     } else if (existingSession) {
                         console.log('✅ DEV MODE: Already logged in as', existingSession.user.email);
                     }
                 }
 
-                // Normal session check for production
+                // Normal session check
                 const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-
                 if (error) throw error;
 
-                setSession(existingSession);
-                setUser(existingSession?.user ?? null);
-
-                if (existingSession?.user) {
+                if (existingSession) {
+                    setSession(existingSession);
+                    setUser(existingSession.user);
                     await fetchProfile(existingSession.user);
+                } else {
+                    console.log('ℹ️ No active session found');
                 }
             } catch (error) {
-                console.error('Session check error:', error);
+                console.error('❌ Session check error:', error);
             } finally {
                 setLoading(false);
+                console.log('🏁 AuthContext: initSession finished, loading = false');
             }
         };
 
-        initSession();
+        if (supabase) {
+            initSession();
 
-        // 2. Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-            setSession(newSession);
-            setUser(newSession?.user ?? null);
+            // 2. Listen for auth changes
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+                console.log('🔑 Auth State Changed:', _event, newSession?.user?.email);
+                setSession(newSession);
+                setUser(newSession?.user ?? null);
 
-            if (newSession?.user) {
-                await fetchProfile(newSession.user);
-            } else {
-                setProfile(null);
-            }
+                if (newSession?.user) {
+                    await fetchProfile(newSession.user);
+                } else {
+                    setProfile(null);
+                }
+                setLoading(false);
+            });
+
+            return () => subscription.unsubscribe();
+        } else {
+            console.warn('⚠️ Supabase unavailable - auth listeners skipped');
             setLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
+        }
     }, []);
 
     const fetchProfile = async (currentUser: User) => {

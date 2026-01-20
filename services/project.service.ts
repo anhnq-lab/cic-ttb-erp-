@@ -353,16 +353,69 @@ export const ProjectService = {
     // --- CHECKLIST METHODS ---
 
     getQualityChecklists: async (): Promise<any[]> => {
-        // TODO: Migrate checklists to DB
-        return [];
+        const { data, error } = await supabase
+            .from('checklist_templates')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching checklist templates:', error);
+            return [];
+        }
+
+        return data.map(t => ({
+            id: t.id,
+            name: t.name,
+            department: t.department_id,
+            items: t.items
+        }));
     },
 
     getTaskChecklistLogs: async (taskId: string): Promise<any[]> => {
-        return [];
+        const { data, error } = await supabase
+            .from('checklist_logs')
+            .select('*, completed_by_emp:employees(*)')
+            .eq('task_id', taskId)
+            .order('completed_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching checklist logs:', error);
+            return [];
+        }
+
+        return data.map(log => ({
+            id: log.id,
+            taskId: log.task_id,
+            templateId: log.template_id,
+            results: log.results,
+            completedBy: log.completed_by_emp?.name || 'Unknown',
+            completedAt: log.completed_at,
+            status: log.status
+        }));
     },
 
     updateChecklistLog: async (log: any): Promise<void> => {
-        console.log('updateChecklistLog not implemented');
+        const payload = {
+            task_id: log.taskId,
+            template_id: log.templateId,
+            results: log.results,
+            completed_by: log.completedByUserId, // Assuming we pass user ID
+            status: log.status,
+            updated_at: new Date().toISOString()
+        };
+
+        if (log.id) {
+            const { error } = await supabase
+                .from('checklist_logs')
+                .update(payload)
+                .eq('id', log.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase
+                .from('checklist_logs')
+                .insert([payload]);
+            if (error) throw error;
+        }
     },
 
     // --- OTHER METHODS ---

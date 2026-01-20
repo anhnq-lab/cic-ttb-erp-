@@ -89,22 +89,44 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, onDelete
         setChecklists(allChecklists);
 
         const logMap: Record<string, boolean> = {};
-        logs.forEach((l: any) => {
-            logMap[l.item_id] = l.status === 'Completed';
-            if (l.checklist_id && !selectedChecklistId) setSelectedChecklistId(l.checklist_id);
-        });
+        if (logs.length > 0) {
+            const latestLog = logs[0]; // Take the most recent log
+            if (latestLog.results && Array.isArray(latestLog.results)) {
+                latestLog.results.forEach((res: any) => {
+                    logMap[res.item_id] = res.checked;
+                });
+            }
+            if (latestLog.templateId) setSelectedChecklistId(latestLog.templateId);
+        }
         setChecklistLogs(logMap);
     };
 
     const handleCheckItem = async (itemId: string, isChecked: boolean) => {
         if (!taskToEdit || !selectedChecklistId) return;
-        setChecklistLogs(prev => ({ ...prev, [itemId]: isChecked }));
+
+        const newLogs = { ...checklistLogs, [itemId]: isChecked };
+        setChecklistLogs(newLogs);
+
+        // Find current checklist for items
+        const currentChecklist = checklists.find(c => c.id === selectedChecklistId);
+        if (!currentChecklist) return;
+
+        const checklistItems = currentChecklist.items;
+
+        // Construct the full results array
+        const results = checklistItems.map((item: any) => ({
+            item_id: item.id,
+            checked: !!newLogs[item.id],
+            note: '',
+            attachment_url: ''
+        }));
+
         await ProjectService.updateChecklistLog({
             taskId: taskToEdit.id,
-            checklistId: selectedChecklistId,
-            itemId: itemId,
-            status: isChecked,
-            checkedBy: 'u1' // Mock ID
+            templateId: selectedChecklistId,
+            results: results,
+            status: 'Completed',
+            completedByUserId: 'u1' // Mock ID, real implementation should use auth user
         });
     };
 

@@ -1,34 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import {
     FileText, History, GitCommit, Info,
     Users, Info as InfoIcon, Search,
-    Printer, Database, CheckSquare, Wallet, Gift, Shield, ChevronDown
+    Printer, Database, CheckSquare, Wallet, Gift, Shield, ChevronDown, Loader2
 } from 'lucide-react';
-
-// --- INTERFACES & DATA ---
-interface PolicyItem {
-    id: string;
-    title: string;
-    text?: string;
-    subItems?: string[];
-    notes?: string[];
-    tableData?: {
-        headers: string[];
-        rows: (string | React.ReactNode)[][];
-    };
-    isInteractiveOrgChart?: boolean; // Changed from isOrgChart to interactive
-    isRaciMatrix?: boolean;
-    isFormula?: boolean;
-}
-
-interface PolicySection {
-    id: string;
-    title: string;
-    icon?: any;
-    content: PolicyItem[];
-}
+import { KnowledgeService, PolicySection } from '../services/knowledge.service';
 
 // Helper to render RACI cells with colors
 const RaciCell = ({ value }: { value: string }) => {
@@ -82,13 +60,11 @@ const OrgNode = ({ title, code, onClick, colorClass = "bg-white border-gray-200 
 );
 
 const OrgLineVertical = ({ height = "h-8" }) => <div className={`w-0.5 bg-gray-300 ${height}`}></div>;
-const OrgLineHorizontal = ({ width = "w-full" }) => <div className={`h-0.5 bg-gray-300 ${width}`}></div>;
 
 const InteractiveOrgChart = ({ onNavigate }: { onNavigate: (id: string) => void }) => {
     return (
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 overflow-x-auto min-w-full">
             <div className="flex flex-col items-center min-w-[800px]">
-                {/* Level 1: GĐTT */}
                 <OrgNode
                     title="Giám đốc Trung tâm"
                     code="10.10"
@@ -96,8 +72,6 @@ const InteractiveOrgChart = ({ onNavigate }: { onNavigate: (id: string) => void 
                     colorClass="bg-orange-50 border-orange-200 text-orange-800 ring-2 ring-orange-100"
                 />
                 <OrgLineVertical height="h-8" />
-
-                {/* Level 2: PGĐTT */}
                 <OrgNode
                     title="Phó Giám đốc"
                     code="10.15"
@@ -105,53 +79,37 @@ const InteractiveOrgChart = ({ onNavigate }: { onNavigate: (id: string) => void 
                     colorClass="bg-orange-50/50 border-orange-200 text-gray-800"
                 />
                 <OrgLineVertical height="h-8" />
-
-                {/* Level 3 Connector */}
                 <div className="relative w-[90%] flex justify-center">
                     <div className="absolute top-0 w-full border-t-2 border-gray-300"></div>
-                    {/* Vertical lines dropping to Level 3 nodes */}
-                    <div className="absolute top-0 left-0 w-0.5 h-8 bg-gray-300"></div> {/* Leftmost */}
+                    <div className="absolute top-0 left-0 w-0.5 h-8 bg-gray-300"></div>
                     <div className="absolute top-0 left-1/4 w-0.5 h-8 bg-gray-300"></div>
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gray-300"></div> {/* Center */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gray-300"></div>
                     <div className="absolute top-0 right-1/4 w-0.5 h-8 bg-gray-300"></div>
-                    <div className="absolute top-0 right-0 w-0.5 h-8 bg-gray-300"></div> {/* Rightmost */}
+                    <div className="absolute top-0 right-0 w-0.5 h-8 bg-gray-300"></div>
                 </div>
-
-                {/* Level 3: Department Heads */}
                 <div className="grid grid-cols-5 gap-4 mt-8 w-full">
-                    {/* Col 1: QA/QC */}
                     <div className="flex flex-col items-center">
                         <OrgNode title="TBP Quản lý CL" code="10.24" onClick={onNavigate} />
                     </div>
-
-                    {/* Col 2: MEP */}
                     <div className="flex flex-col items-center">
                         <OrgNode title="TB Môn Cơ Điện" code="10.20" onClick={onNavigate} />
                         <OrgLineVertical height="h-4" />
                         <OrgNode title="Thành viên" code="10.30" onClick={onNavigate} colorClass="bg-gray-50 border-gray-200 text-gray-500 scale-90" />
                     </div>
-
-                    {/* Col 3: Architecture/Structure */}
                     <div className="flex flex-col items-center">
                         <OrgNode title="TB Môn KT-KC" code="10.20" onClick={onNavigate} />
                         <OrgLineVertical height="h-4" />
                         <OrgNode title="Thành viên" code="10.30" onClick={onNavigate} colorClass="bg-gray-50 border-gray-200 text-gray-500 scale-90" />
                     </div>
-
-                    {/* Col 4: Project Promotion */}
                     <div className="flex flex-col items-center">
                         <OrgNode title="TBP Xúc tiến DA" code="10.26" onClick={onNavigate} />
                         <OrgLineVertical height="h-4" />
                         <OrgNode title="Thành viên" code="10.36" onClick={onNavigate} colorClass="bg-gray-50 border-gray-200 text-gray-500 scale-90" />
                     </div>
-
-                    {/* Col 5: R&D */}
                     <div className="flex flex-col items-center">
                         <OrgNode title="TBP R&D" code="10.28" onClick={onNavigate} />
                     </div>
                 </div>
-
-                {/* Side Node: Admin (Usually connects to GĐTT or PGĐTT separately, but putting here for simplicity based on previous diagram context, usually admin supports whole center) */}
                 <div className="absolute left-10 top-[200px] hidden xl:block">
                     <div className="flex items-center">
                         <OrgNode title="TBP Admin" code="10.22" onClick={onNavigate} />
@@ -164,8 +122,7 @@ const InteractiveOrgChart = ({ onNavigate }: { onNavigate: (id: string) => void 
     );
 };
 
-
-// RACI Headers
+// RACI Headers (Keeping as constant for now, could be moved to DB later)
 const RACI_HEADERS = [
     'STT', 'Nội dung công việc',
     'GĐTT', 'PGĐTT', 'TBP Admin', 'TBP QA/QC',
@@ -173,7 +130,7 @@ const RACI_HEADERS = [
     'QLDA', 'QL BIM', 'ĐPBM', 'TNDH', 'NDH'
 ];
 
-// RACI Data 25.10 (Vốn ngân sách)
+// RACI Data 25.10 & 25.20 (Vốn ngân sách & Vốn ngoài NS)
 const RACI_ROWS_25_10 = [
     ['1', 'Xúc tiến Dự án', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['1.1', 'Thuyết trình khách hàng', 'I/C', 'C', '', '', '', '', 'C', 'C', 'C', 'R', '', '', ''],
@@ -221,7 +178,6 @@ const RACI_ROWS_25_10 = [
     ['7.2', 'Rút kinh nghiệm', 'I', 'I', '', '', '', '', '', 'C', 'R', 'C', 'C', 'C', '']
 ];
 
-// RACI Data 25.20 (Vốn ngoài NS)
 const RACI_ROWS_25_20 = [
     ['1', 'Xúc tiến Dự án', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['1.1', 'Thuyết trình khách hàng', 'I/C', 'C', '', '', '', '', 'C', 'C', 'C', 'R', '', '', ''],
@@ -260,507 +216,93 @@ const RACI_ROWS_25_20 = [
     ['6.2', 'Rút kinh nghiệm', 'I', 'I', '', '', '', '', '', 'C', 'R', 'C', 'C', 'C', '']
 ];
 
-const POLICY_CONTENT: PolicySection[] = [
-    {
-        id: 'versions',
-        title: 'Quản lý phiên bản',
-        icon: History,
-        content: [
-            {
-                id: 'versions-table',
-                title: 'Lịch sử cập nhật tài liệu',
-                tableData: {
-                    headers: ['STT', 'Số phiên bản', 'Ngày ban hành', 'Nội dung cập nhật'],
-                    rows: [
-                        ['01', 'P01', '02/09/2024', 'Phát hành lần đầu'],
-                        ['02', 'P02', '31/12/2024 (DK)', 'Cập nhật thêm một số mục:\n+ Tuyển dụng\n+ Một số quy định chi tiết hơn cho Bimcollab, ClickUp\n+ Bổ sung thêm quy định về trang phục và vệ sinh\n+ Sửa đổi, cập nhật một số điều chưa hợp lý từ phiên bản 01'],
-                        ['03', 'P03', '06/01/2026', 'Cập nhật một số nội dung:\n+ Sơ đồ tổ chức\n+ Quy trình triển khai Dự án & Ma trận Raci\n+ Phân chia tiền thưởng cuối năm']
-                    ]
-                }
-            }
-        ]
-    },
-    {
-        id: 'intro',
-        title: 'Lời nói đầu & Tổng quan',
-        icon: Info,
-        content: [
-            {
-                id: 'foreword',
-                title: 'Lời nói đầu',
-                text: 'Trong bối cảnh ngành xây dựng và công nghệ đang không ngừng phát triển, việc ứng dụng các công nghệ tiên tiến như BIM (Building Information Modeling) và Digital Twins đã trở thành xu thế tất yếu. Trung tâm BIM và Digital Twins của Công ty được thành lập với mục tiêu tiên phong trong việc áp dụng các giải pháp công nghệ để nâng cao chất lượng, hiệu quả và tính bền vững của các dự án xây dựng.\n\nNhằm đảm bảo sự phối hợp chặt chẽ và hiệu quả giữa các thành viên, đồng thời xây dựng một hệ thống quản lý minh bạch và chuyên nghiệp, tài liệu này được biên soạn để quy định rõ chức năng và nhiệm vụ của từng thành viên trong Trung tâm cũng như vai trò cụ thể của mỗi người trong từng dự án.\n\nTài liệu này sẽ là cơ sở quan trọng giúp mỗi thành viên hiểu rõ trách nhiệm của mình, từ đó góp phần nâng cao hiệu suất làm việc, tạo điều kiện thuận lợi cho quá trình triển khai dự án và đạt được những mục tiêu chiến lược của Công ty. Đồng thời, đây cũng là công cụ hỗ trợ quản lý, giúp lãnh đạo Trung tâm dễ dàng theo dõi, đánh giá và điều chỉnh phù hợp nhằm đảm bảo các dự án được thực hiện đúng tiến độ, đạt chất lượng cao nhất.\n\nVới sự hợp tác và cam kết mạnh mẽ của tất cả các thành viên, Trung tâm BIM và Digital Twins sẽ tiếp tục phát triển và khẳng định vị thế của mình trong ngành xây dựng hiện đại.'
-            },
-            {
-                id: '01',
-                title: '01. Phạm vi tài liệu',
-                text: 'Tài liệu này xác định cơ chế hoạt động của Trung tâm BIM và Digital Twins tại Công ty. Nội dung tập trung vào việc quy định chức năng và nhiệm vụ của từng thành viên trong trung tâm, đồng thời hướng dẫn cách quản lý dữ liệu, công việc, và quy trình trong các dự án BIM. Tài liệu cũng cung cấp cơ cấu tổ chức, phương pháp làm việc, và hệ thống biểu mẫu, giúp đảm bảo tính minh bạch, hiệu quả, và nâng cao chất lượng trong các dự án xây dựng sử dụng công nghệ BIM và Digital Twins.'
-            },
-            {
-                id: '02',
-                title: '02. Mục đích của tài liệu',
-                text: 'Tài liệu này được biên soạn nhằm thiết lập các quy định và hướng dẫn cụ thể về cách thức hoạt động, quản lý và phối hợp của Trung tâm BIM và Digital Twins trong Công ty. Nó hướng tới mục tiêu nâng cao hiệu suất làm việc, đảm bảo sự minh bạch trong quản lý, và cải thiện chất lượng dự án. Đồng thời, tài liệu còn đóng vai trò là công cụ hỗ trợ lãnh đạo trong việc theo dõi, đánh giá và điều chỉnh các hoạt động để đảm bảo các dự án đạt được kết quả tối ưu.'
-            }
-        ]
-    },
-    {
-        id: '10',
-        title: '10. Chức năng nhiệm vụ chung',
-        icon: GitCommit,
-        content: [
-            {
-                id: '10.00',
-                title: '10.00. Sơ đồ tổ chức',
-                text: '10.00.100. Sơ đồ tổ chức Trung tâm BIM và Digital Twin như sau:',
-                isInteractiveOrgChart: true
-            },
-            {
-                id: '10.10',
-                title: '10.10. Giám đốc Trung tâm (GĐTT)',
-                subItems: [
-                    '10.10.100. Báo cáo công việc hàng tháng, hàng tuần lên ban giám đốc Công ty',
-                    '10.10.110. Quản lý các công việc chung của trung tâm',
-                    '10.10.113. Là cầu nối giữa Ban lãnh đạo Công ty và đội ngũ kỹ thuật BIM',
-                    '10.10.115. Đại diện chuyên môn làm việc với Chủ đầu tư, đối tác và cơ quan quản lý nhà nước',
-                    '10.10.117. Dẫn dắt đổi mới công nghệ, triển khai các giải pháp BIM, Digital Twins và AI',
-                    '10.10.120. Tạo dự án mới, đặt tên cho dự án',
-                    '10.10.130. Nắm và điều phối workload của các thành viên của trung tâm để phân công nhiệm vụ hợp lý, hài hòa.',
-                    '10.10.140. Quản lý hiệu suất làm việc của các thành viên, đưa ra điều chỉnh nhằm nâng cao hiệu suất làm việc',
-                    '10.10.150. Đề xuất với ban giám đốc Công ty bổ sung thêm thành viên mới',
-                    '10.10.160. Quyết định tiếp nhận thành viên mới sau kết thúc thử việc',
-                    '10.10.170. Đề xuất ban giám đốc công ty kết thúc hợp đồng với thành viên hiện tại',
-                    '10.10.180. Đề xuất ban giám đốc công ty bổ sung / thay đổi môi trường, điều kiện làm việc của trung tâm',
-                    '10.10.190. Tạo, quản lý, điều chỉnh cơ chế hoạt động của trung tâm',
-                    '10.10.200. Nghiên cứu, tìm hiểu, phê duyệt các giải pháp kỹ thuật mới',
-                    '10.10.210. Giao nhiệm vụ từng thành viên trong trung tâm khi có dự án mới phù hợp với năng lực kinh nghiệm và phương hướng phát triển của từng người',
-                    '10.10.220. Huấn luyện, đào tạo cho các thành viên trong trung tâm',
-                    '10.10.230. Xây dựng biểu mẫu đánh giá phẩm chất và lộ trình phát triển của từng thành viên trong trung tâm.',
-                    '10.10.240. Xây dựng biểu mẫu đánh giá hiệu quả công việc của từng thành viên trung tâm',
-                    '10.10.250. Đưa ra quyết định nếu vấn đề đưa ra lấy ý kiến biểu quyết mà giá trị biểu quyết đang cân bằng'
-                ]
-            },
-            {
-                id: '10.15',
-                title: '10.15. Phó giám đốc Trung tâm (PGĐTT)',
-                notes: ['Phó giám đốc Trung tâm được GĐTT giao cho ông: Nguyễn Bá Nhiệm đảm nhận'],
-                subItems: [
-                    '10.15.100. Hỗ trợ Giám đốc Trung tâm điều hành toàn bộ hoạt động của Trung tâm',
-                    '10.15.110. Thay mặt GĐTT điều hành hoạt động của Trung tâm trong trường hợp GĐTT vắng mặt',
-                    '10.15.120. Là cầu nối giữa Ban lãnh đạo Công ty và đội ngũ kỹ thuật BIM',
-                    '10.15.130. Đại diện chuyên môn làm việc với Chủ đầu tư, đối tác và cơ quan quản lý nhà nước',
-                    '10.15.140. Dẫn dắt đổi mới công nghệ, triển khai các giải pháp BIM, Digital Twins và AI',
-                    '10.15.150. Tổ chức, phân công và giám sát các bộ phận trong trung tâm (mô hình hóa, thẩm tra, đào tạo, tư vấn quy trình BIM)',
-                    '10.15.160. Quản lý tiến độ, chất lượng các dự án BIM/Digital Twins',
-                    '10.15.170. Kiểm soát việc tuân thủ tiêu chuẩn BIM (EIR, BEP) và các quy định pháp luật hiện hành',
-                    '10.15.180. Lên kế hoạch và tổ chức các chương trình đào tạo nội bộ và đào tạo cho khách hàng về BIM/Digital Twins',
-                    '10.15.190. Hướng dẫn, cố vấn kỹ thuật cho Quản lý Dự án dưới sự phân công của GĐTT',
-                    '10.15.200. Đề xuất các quy trình, công cụ mới nhằm tối ưu hóa năng suất và chất lượng.',
-                    '10.15.210. Định hướng nghiên cứu khoa học liên quan đến BIM, Digital Twins, công nghệ AI trong xây dựng'
-                ]
-            },
-            {
-                id: '10.20',
-                title: '10.20. Trưởng bộ môn (TBM)',
-                notes: [
-                    'Trưởng bộ môn cơ điện GĐTT giao cho ông: Nguyễn Bá Nhiệm đảm nhận',
-                    'Trưởng bộ môn Kiến trúc kết cấu GĐTT giao cho ông: Vũ Văn Hòa đảm nhận'
-                ],
-                subItems: [
-                    '10.20.100. Quản lý các thành viên của bộ môn mình quản lý',
-                    '10.20.110. Báo cáo giám đốc trung tâm khi được yêu cầu',
-                    '10.20.120. Tham mưu giám đốc trung tâm điều chỉnh Workload / hiệu suất của các thành viên trong bộ môn mình quản lý',
-                    '10.20.130. Thúc đẩy hiệu suất làm việc của các thành viên bộ môn mình quản lý',
-                    '10.20.140. Nghiên cứu, tìm hiểu, đề xuất lên giám đốc trung tâm các giải pháp kỹ thuật mới',
-                    '10.20.150. Đào tạo kỹ năng mới cho các thành viên bộ môn mình quản lý cũng như các thành viên khác của trung tâm',
-                    '10.20.160. Nắm bắt thông tin liên quan đến bộ môn mình của tất cả các dự án của Trung tâm',
-                    '10.20.170. Báo cáo công việc hàng ngày trên nền tảng quản lý công việc của Trung tâm (ClickUp)'
-                ]
-            },
-            {
-                id: '10.22',
-                title: '10.22. Trưởng bộ phận Admin (TAM)',
-                notes: ['Trưởng bộ phận Admin GĐTT giao cho bà: Đào Đông Quỳnh đảm nhận'],
-                subItems: [
-                    '10.22.100. Quản lý Hành chính Tổng thể: Tổ chức, điều hành và giám sát mọi hoạt động hành chính, văn phòng',
-                    '10.22.110. Quản lý Tài sản và Mua sắm: Chủ trì công tác quản lý tài sản, trang thiết bị, và thực hiện quy trình đề xuất, báo cáo mua sắm',
-                    '10.22.120. Hỗ trợ Nhân sự: Phối hợp với Giám đốc/Phó Giám đốc trong công tác tuyển dụng, đào tạo, lưu trữ hồ sơ nhân sự',
-                    '10.22.130. Quản lý Văn thư và Dữ liệu Nội bộ: Quản lý hệ thống văn bản, hồ sơ hành chính, tài liệu chung',
-                    '10.22.140. Quản lý giờ công: Quản lý số ngày công thực tế (kể cả làm thêm cuối tuần) của các thành viên',
-                    '10.22.150. Tham mưu và Báo cáo: Tham mưu cho Giám đốc Trung tâm về các giải pháp tối ưu hóa quy trình',
-                    '10.22.160. Quản lý hồ sơ Thanh Quyết toán: Tạo lập hồ sơ phục vụ thanh quyết toán'
-                ]
-            },
-            {
-                id: '10.24',
-                title: '10.24. Trưởng bộ phận Quản lý chất lượng (TQLCL)',
-                text: '(Nội dung đang được cập nhật)',
-                subItems: [
-                    '10.24.100. Kiểm soát chất lượng hồ sơ, mô hình trước khi xuất bản',
-                    '10.24.110. Xây dựng và duy trì hệ thống tiêu chuẩn QA/QC',
-                    '10.24.120. Đào tạo quy trình kiểm soát chất lượng cho các thành viên'
-                ]
-            },
-            {
-                id: '10.26',
-                title: '10.26. Trưởng bộ phận xúc tiến dự án (TXTDA)',
-                notes: ['Trưởng bộ phận Xúc tiến dự án GĐTT giao cho ông: Nguyễn Quốc Anh đảm nhận'],
-                subItems: [
-                    '10.26.100. Lập kế hoạch và triển khai các hoạt động xúc tiến, mở rộng thị trường',
-                    '10.26.110. Xây dựng và duy trì quan hệ với Chủ đầu tư, đối tác',
-                    '10.26.120. Phối hợp lập hồ sơ dự thầu, đề xuất giải pháp kỹ thuật',
-                    '10.26.130. Xây dựng tài liệu marketing, thực hiện các buổi trình bày chuyên môn',
-                    '10.26.140. Nghiên cứu thị trường, đối thủ cạnh tranh',
-                    '10.26.150. Báo cáo định kỳ về tình hình xúc tiến dự án',
-                    '10.26.160. Hỗ trợ, tham mưu cho Quản lý Dự án trong quá trình triển khai hồ sơ',
-                    '10.26.170. Đào tạo khách hàng tổng thể BIM, phần mềm'
-                ]
-            },
-            {
-                id: '10.28',
-                title: '10.28. Trưởng bộ phận R&D (TRD)',
-                text: '(Nội dung đang được cập nhật)',
-                subItems: [
-                    '10.28.100. Nghiên cứu công nghệ mới, tool, plugin hỗ trợ tăng năng suất',
-                    '10.28.110. Đề xuất áp dụng các giải pháp Digital Twin, AI vào quy trình',
-                    '10.28.120. Đào tạo công nghệ mới cho nội bộ'
-                ]
-            },
-            {
-                id: '10.30',
-                title: '10.30. Thành viên bộ môn (TVBM)',
-                subItems: [
-                    '10.30.100. Tuân thủ các nội quy của trung tâm, Công ty',
-                    '10.30.110. Quản lý Workload của bản thân',
-                    '10.30.120. Duy trì hiệu suất làm việc của bản thân',
-                    '10.30.130. Đề xuất với trưởng bộ môn, giám đốc trung tâm các vấn đề của Trung tâm',
-                    '10.30.140. Nghiên cứu, tìm hiểu các giải pháp kỹ thuật mới, đệ trình lên Trưởng bộ môn',
-                    '10.30.150. Đào tạo kỹ năng mới cho các thành viên khác',
-                    '10.30.160. Báo cáo công việc hàng ngày trên nền tảng quản lý công việc (ClickUp)',
-                    '10.30.170. Xin phép nghỉ trước ít nhất 1 ngày và thông báo đến các thành viên'
-                ]
-            },
-            {
-                id: '10.36',
-                title: '10.36. Thành viên bộ phận xúc tiến dự án',
-                text: '(Áp dụng tương tự quy định chung cho thành viên)',
-                subItems: [
-                    '10.36.100. Hỗ trợ trưởng bộ phận trong công tác chuẩn bị hồ sơ thầu',
-                    '10.36.110. Tìm kiếm thông tin dự án, khách hàng tiềm năng'
-                ]
-            }
-        ]
-    },
-    {
-        id: '20',
-        title: '20. Chức năng nhiệm vụ Dự án',
-        icon: Users,
-        content: [
-            {
-                id: '20.00',
-                title: '20.00. Quy định chung',
-                subItems: [
-                    '20.00.100. Mỗi thành viên có thể mang nhiều chức năng trong dự án.',
-                    '20.00.110. Quản lý dự án / Quản lý BIM sẽ do GĐTT bổ nhiệm khi bắt đầu triển khai dự án.',
-                    '20.00.120. Quản lý dự án / Quản lý BIM cho dự án có thể là trưởng bộ môn, trưởng bộ phận Quản lý chất lượng, trưởng bộ phận Xúc tiến dự án'
-                ]
-            },
-            {
-                id: '20.10',
-                title: '20.10. Quản lý Dự án / Quản lý BIM (QLDA/QLB)',
-                subItems: [
-                    '20.10.100. Quản lý chung cho Dự án',
-                    '20.10.110. Giao nhiệm vụ cho các thành viên trong khuôn khổ dự án',
-                    '20.10.120. Tạo các công việc mới trong khuôn khổ dự án',
-                    '20.10.130. Kiểm tra, kiểm soát đột xuất một công việc',
-                    '20.10.140. Điều chỉnh trạng thái của công việc trên Click Up',
-                    '20.10.150. Kiểm soát tổng thể về Issue trên Bimcollab',
-                    '20.10.160. Nắm tiến độ dự án, báo cáo Giám đốc trung tâm khi có yêu cầu',
-                    '20.10.170. Làm việc trực tiếp với khách hàng rồi truyền đạt đến điều phối bộ môn',
-                    '20.10.180. Tham dự cuộc họp điều phối với khách hàng',
-                    '20.10.190. Lập kế hoạch triển khai (BEP) khi chuẩn bị triển khai dự án',
-                    '20.10.200. Thiết lập file (tọa độ, cao độ, lưới trục)',
-                    '20.10.210. Thiết lập lưu trữ dữ liệu cho dự án',
-                    '20.10.220. Thiết lập Bimcollab cho dự án',
-                    '20.10.230. Duyệt File hoặc ủy quyền duyệt file trước khi gửi cho khách hàng',
-                    '20.10.240. Thêm hoặc bớt thư mục dự án phù hợp với thực tế',
-                    '20.10.250. Tạo lập nhóm chung trao đổi công việc giữa CIC và khách hàng'
-                ]
-            },
-            {
-                id: '20.20',
-                title: '20.20. Điều phối bộ môn (DPBM)',
-                subItems: [
-                    '20.20.100. Trao đổi, kết nối với các thành viên trong bộ môn của dự án',
-                    '20.20.110. Kiểm tra mô hình đơn lẻ được gửi lên bởi người dựng hình',
-                    '20.20.120. Kiểm tra mô hình tổng hợp bộ môn',
-                    '20.20.130. Chỉ thêm Comments cho công việc',
-                    '20.20.140. Nếu thiếu công việc, phản ánh lên BIM Manager để bổ sung',
-                    '20.20.150. Tham gia cuộc họp điều phối với khách hàng',
-                    '20.20.160. Tham gia trao đổi thông tin trong nhóm trao đổi (Zalo, Telegram...)',
-                    '20.20.170. Tham gia tạo lập hoặc góp ý, đề xuất ý kiến xây dựng BEP'
-                ]
-            },
-            {
-                id: '20.30',
-                title: '20.30. Trưởng nhóm dựng hình (TNDH)',
-                subItems: [
-                    '20.30.100. Người kiểm tra có thể là điều phối bộ môn hoặc người dựng hình',
-                    '20.30.110. Được gán quyền Editor trong Bimcollab để tạo Issue',
-                    '20.30.111. Được gán vai trò Assignee trong công việc trên ClickUp',
-                    '20.30.120. Yêu cầu người dựng hình gửi file mới nhất để kiểm tra',
-                    '20.30.130. Chịu trách nhiệm trước điều phối bộ môn về chất lượng mô hình',
-                    '20.30.140. Có thể ủy quyền cho các thành viên trong tổ Dự án kiểm tra mô hình',
-                    '20.30.150. Đào tạo, hướng dẫn người dựng hình để ngăn ngừa rủi ro'
-                ]
-            },
-            {
-                id: '20.40',
-                title: '20.40. Người dựng hình (NDH)',
-                subItems: [
-                    '20.40.100. Nghiên cứu tài liệu / bản vẽ đầu vào',
-                    '20.40.110. Triển khai các công việc theo sự phân công của quản lý BIM',
-                    '20.40.120. Trực tiếp phát hiện lỗi sai từ mô hình, báo lên điều phối bộ môn',
-                    '20.40.130. Đưa ra các ý kiến về mô hình được chia sẻ',
-                    '20.40.140. Chủ động phòng ngừa các lỗi hay gặp',
-                    '20.40.150. Tuân thủ quy định của BEP và yêu cầu của Điều phối bộ môn',
-                    '20.40.160. Gửi mô hình đúng hạn lên mục 2095_Submital và comment trên ClickUp',
-                    '20.40.170. Được gán với vai trò Reviewer với dự án trên Bimcollab',
-                    '20.40.180. Được gán với vai trò 2nd Assignee cho công việc trên ClickUp'
-                ]
-            }
-        ]
-    },
-    {
-        id: 'raci',
-        title: '25. Quy trình Dự án & Ma trận RACI',
-        icon: Users,
-        content: [
-            {
-                id: 'raci-state',
-                title: '25.10. Quy trình 25.10 (Vốn Ngân Sách)',
-                text: 'R: Bắt buộc | A: Phê duyệt | C: Tham vấn | I: Được thông báo',
-                isRaciMatrix: true
-            },
-            {
-                id: 'raci-non-state',
-                title: '25.20. Quy trình 25.20 (Vốn Ngoài Ngân Sách)',
-                text: 'R: Bắt buộc | A: Phê duyệt | C: Tham vấn | I: Được thông báo',
-                isRaciMatrix: true
-            }
-        ]
-    },
-    {
-        id: '30',
-        title: '30. Quản lý dữ liệu',
-        icon: Database,
-        content: [
-            {
-                id: '30.10',
-                title: '30.10. Không gian lưu trữ',
-                subItems: [
-                    '30.10.130. Sử dụng Google Drive là giải pháp lưu trữ chung của Trung tâm',
-                    '30.10.140. Tất cả thông tin chung của trung tâm được lưu trữ tại thư mục CIC_BIM TEAM_INTERNAL',
-                    '30.10.150. Thông tin cá nhân được lưu trữ tại thư mục CIC_BIM TEAM_INTERNAL\\90.For Individual',
-                    '30.10.160. Giám đốc trung tâm tạo lập dự án mới (Tạo lập thư mục mới)'
-                ],
-                notes: [
-                    'Tên dự án: <Mã Dự An>-<Tên Dự Án>_<Tên Đối Tác>_(INT)',
-                    'Mã dự án: <Năm><Số thứ tự> (VD: 24015)',
-                    'Tên Dự án: Chữ in hoa, tối đa 6 ký tự',
-                    'Tên đối tác: Chữ in hoa, tối đa 10 ký tự'
-                ]
-            },
-            {
-                id: '30.20',
-                title: '30.20. Biểu mẫu (Template)',
-                subItems: [
-                    '30.20.100. Giám đốc trung tâm BIM có trách nhiệm cập nhật, chỉnh sửa template',
-                    '30.20.140. Mô hình Dự án mới bắt buộc phải được thiết lập dựa trên biểu mẫu có sẵn',
-                    'Đường dẫn template: H:\\Shared drives\\CIC_BIM TEAM_INTERNAL\\30. Template'
-                ]
-            },
-            {
-                id: '30.30',
-                title: '30.30. Cấu trúc thư mục',
-                subItems: [
-                    '30.30.100. Cấu trúc thư mục được quản lý bởi Giám đốc Trung tâm BIM',
-                    '30.30.140. Tên thư mục gồm 2 thành phần: phần mã thư mục và tên. Từ cấp 4 trở lên bắt buộc đánh mã.',
-                    '30.30.141. Chỉ tạo tối đa không quá 7 cấp thư mục'
-                ]
-            },
-            {
-                id: '30.40',
-                title: '30.40. Dữ liệu dự án',
-                subItems: [
-                    '30.40.100. Quản lý BIM là người có vai trò Admin đối với thư mục Dự án do mình quản lý',
-                    '30.40.140. Mục 2095_Submital gán vai trò "Người quản lý nội dung" cho tất cả thành viên dự án',
-                    '30.40.160. Dữ liệu, file, mô hình của từng cá nhân liên quan đến dự án được đặt trên thư mục cá nhân'
-                ]
-            },
-            {
-                id: '30.50',
-                title: '30.50. Phiên bản',
-                subItems: [
-                    '30.50.130. Phiên bản trước chia sẻ (S0) có dạng P01.01',
-                    '30.50.140. Phiên bản sau chia sẻ (S1 trở đi) có dạng P01 (lược bỏ 2 số sau)',
-                    'Cấu trúc tên file: <Mã>_<TênFile>_<PhiênBản>. Ví dụ: K8HH1_CIC_BD_STRU_01FL_P01.01'
-                ]
-            }
-        ]
-    },
-    {
-        id: '40',
-        title: '40. Quản lý công việc',
-        icon: CheckSquare,
-        content: [
-            {
-                id: '40.10',
-                title: '40.10. Mua sắm',
-                subItems: [
-                    '40.10.100. Thành viên trung tâm báo cáo đề xuất mua sắm lên giám đốc trung tâm',
-                    '40.10.110. Báo cáo mua sắm phải làm rõ: Lợi ích, Chi phí, Số lượng, Mục đích',
-                    'Biểu mẫu tại: 99.50_Bao Cao Mua Sam\\99.50.10_Bieu Mau Bao Cao'
-                ]
-            },
-            {
-                id: '40.20',
-                title: '40.20. ClickUp',
-                subItems: [
-                    '40.20.100. Giám đốc trung tâm sẽ tạo dự án mới trên ClickUp',
-                    '40.20.110. Các phân vùng: ONGOING PROJECT, POTENTIAL PROJECT, BIM & DIGITAL TWIN, FINISH PROJECT',
-                    '40.20.300. Loại công việc: Task, Milestone (hình thoi), Chu kỳ (vô cực), Đột Xuất',
-                    '40.20.420. Trạng thái công việc: Not Started, Active (S0-S6.1), Done (S4-S6), Closed'
-                ],
-                notes: [
-                    'S0: Đang thực hiện', 'S1: Phối hợp', 'S2: Tham khảo', 'S3: Duyệt nội bộ',
-                    'S4: Lãnh đạo duyệt', 'S6: Trình khách hàng', 'COMPLETE: Hoàn thành'
-                ]
-            },
-            {
-                id: '40.30',
-                title: '40.30. BimCollab',
-                subItems: [
-                    '40.30.100. Giám đốc Trung tâm tạo dự án dựa trên Template',
-                    '40.30.120. Tên dự án trên Bimcollab phải giống tên Dự án trên Drive và ClickUp',
-                    'Quyền hạn: Viewer (Chủ đầu tư), Reviewer (Người dựng hình), Editor (Điều phối bộ môn), Project Leader (QLDA)'
-                ]
-            },
-            {
-                id: '40.40',
-                title: '40.40. Tuyển Dụng',
-                subItems: [
-                    '40.40.100. Trưởng bộ môn tạo bản mô tả công việc gửi phòng nhân sự',
-                    '40.40.110. Trưởng bộ môn lọc hồ sơ, phỏng vấn lần 1',
-                    '40.40.130. Giám đốc trung tâm và trưởng bộ môn phỏng vấn lần 2'
-                ]
-            }
-        ]
-    },
-    {
-        id: '50',
-        title: '50. Quỹ Trung tâm',
-        icon: Wallet,
-        content: [
-            {
-                id: '50.10',
-                title: '50.10. Quy định chung',
-                subItems: [
-                    '50.10.110. Quỹ dùng cho công việc chung, hiếu hỉ, mua sắm...',
-                    '50.10.120. Người nắm quỹ: Hà Văn Đức',
-                    '50.20.120. Đóng quỹ định kỳ đầu tháng: 200.000 VNĐ/người'
-                ]
-            }
-        ]
-    },
-    {
-        id: '60',
-        title: '60. Thưởng tết',
-        icon: Gift,
-        content: [
-            {
-                id: '60.10',
-                title: '60.10. Nguyên tắc chung',
-                text: 'Thưởng dựa trên doanh thu của Trung tâm nhằm khuyến khích sự nỗ lực, cống hiến.'
-            },
-            {
-                id: '60.30',
-                title: '60.30. Quy trình chia thưởng',
-                text: 'Giá trị thưởng (G) = GD + NCPT + TCHC + CTK + KTNL + G1 + G2',
-                notes: [
-                    'GD (Giám đốc): 18%',
-                    'NCPT (Nghiên cứu PT): 3%',
-                    'TCHC (Tổ chức HC): 1.5%',
-                    'KTNL (Kiểm tra năng lực): 10 triệu (chia 45%, 35%, 20% cho Top 3)',
-                    'G1, G2: Thưởng cho các đội bộ môn'
-                ]
-            },
-            {
-                id: '60.30.formula',
-                title: 'Công thức phân chia',
-                isFormula: true,
-                text: `
-              Công thức tính thưởng bộ môn:
-              G1 = G x (T1 / (T1 + T2))
-              G2 = G x (T2 / (T1 + T2))
-              
-              Trong đó:
-              T = Tổng số tháng làm việc của tất cả thành viên trong đội
-              `
-            }
-        ]
-    },
-    {
-        id: '90',
-        title: '90. Quy định khác',
-        icon: Shield,
-        content: [
-            {
-                id: '90.10',
-                title: '90.10. Trang phục',
-                subItems: [
-                    '90.10.110. Mặc lịch sự, gọn gàng, phù hợp môi trường văn phòng',
-                    '90.10.140. Quần tây, quần vải, quần jean dáng dài (không rách). Không mặc quần đùi.',
-                    '90.10.150. Tránh màu sắc quá chói, sặc sỡ.'
-                ]
-            },
-            {
-                id: '90.20',
-                title: '90.20. Vệ sinh',
-                subItems: [
-                    '90.20.100. Bàn làm việc sắp xếp gọn gàng trước khi ra về',
-                    '90.20.110. Tự vệ sinh hút bụi khu vực làm việc ít nhất 1 tuần/lần',
-                    '90.20.120. Sắp xếp giày dép, thảm gọn gàng',
-                    '90.20.140. Tắt điện, điều hòa, đóng cửa sổ khi ra về'
-                ]
-            }
-        ]
-    }
-];
-
 const PolicyViewer = () => {
-    const [activeSectionId, setActiveSectionId] = useState<string>(POLICY_CONTENT[0].id);
+    const [activeSectionId, setActiveSectionId] = useState<string>('versions');
     const [searchQuery, setSearchQuery] = useState('');
+    const [policies, setPolicies] = useState<PolicySection[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const activeSection = POLICY_CONTENT.find(s => s.id === activeSectionId) || POLICY_CONTENT[0];
+    const IconMap: Record<string, any> = {
+        'History': History,
+        'Info': Info,
+        'GitCommit': GitCommit,
+        'Users': Users,
+        'Database': Database,
+        'Shield': Shield,
+        'Wallet': Wallet,
+        'Gift': Gift,
+        'CheckSquare': CheckSquare,
+        'InfoIcon': InfoIcon
+    };
+
+    useEffect(() => {
+        const fetchPolicies = async () => {
+            setLoading(true);
+            try {
+                const data = await KnowledgeService.getPolicies();
+                if (data.length > 0) {
+                    const mappedData = data.map(section => ({
+                        ...section,
+                        id: section.sectionId,
+                        icon: IconMap[section.icon] || Info
+                    }));
+                    setPolicies(mappedData);
+                    setActiveSectionId(mappedData[0].id);
+                }
+            } catch (error) {
+                console.error('Fetch policies error:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPolicies();
+    }, []);
+
+    const activeSection = useMemo(() =>
+        policies.find(s => s.id === activeSectionId) || (policies.length > 0 ? policies[0] : null),
+        [activeSectionId, policies]
+    );
 
     const filteredContent = useMemo(() => {
-        if (!searchQuery) return POLICY_CONTENT;
-        return POLICY_CONTENT.filter(s =>
+        if (!searchQuery) return policies;
+        return policies.filter(s =>
             s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             s.content.some(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
         );
-    }, [searchQuery]);
+    }, [searchQuery, policies]);
 
-    const handleScrollToSection = (id: string) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Highlight effect
-            element.classList.add('bg-orange-50', 'transition-colors', 'duration-500');
+    const handleNavigate = (id: string) => {
+        const foundSection = policies.find(s => s.id === id || s.content.some(c => c.id === id));
+        if (foundSection) {
+            setActiveSectionId(foundSection.id);
             setTimeout(() => {
-                element.classList.remove('bg-orange-50');
-            }, 2000);
+                const element = document.getElementById(id);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    element.classList.add('bg-orange-50', 'transition-colors', 'duration-500');
+                    setTimeout(() => element.classList.remove('bg-orange-50'), 2000);
+                }
+            }, 100);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex-1 bg-gray-50 flex flex-col items-center justify-center p-20">
+                <Loader2 className="animate-spin text-orange-600 mb-4" size={40} />
+                <p className="text-gray-500 font-medium">Đang tải tài liệu quy chế...</p>
+            </div>
+        );
+    }
+
+    if (!activeSection) {
+        return (
+            <div className="flex-1 bg-gray-50 flex flex-col items-center justify-center p-20">
+                <InfoIcon className="text-gray-300 mb-4" size={60} />
+                <p className="text-gray-500 font-medium">Không có dữ liệu quy chế.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex-1 bg-gray-50 min-h-screen flex flex-col">
@@ -850,17 +392,17 @@ const PolicyViewer = () => {
                                 )}
 
                                 {item.tableData && (
-                                    <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden mb-4 shadow-sm bg-gray-50/20">
                                         <table className="w-full text-sm text-left">
-                                            <thead className="bg-gray-100 text-gray-600 font-bold">
+                                            <thead className="bg-slate-800 text-white text-[10px] uppercase font-black tracking-widest">
                                                 <tr>
                                                     {item.tableData.headers.map((h, i) => <th key={i} className="px-4 py-3 border-b">{h}</th>)}
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100">
+                                            <tbody className="divide-y divide-gray-100 bg-white">
                                                 {item.tableData.rows.map((row, rIdx) => (
-                                                    <tr key={rIdx} className="hover:bg-gray-50">
-                                                        {row.map((cell, cIdx) => <td key={cIdx} className="px-4 py-3 whitespace-pre-line">{cell}</td>)}
+                                                    <tr key={rIdx} className="hover:bg-gray-50/50">
+                                                        {row.map((cell, cIdx) => <td key={cIdx} className="px-4 py-3 whitespace-pre-line text-gray-600">{cell}</td>)}
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -869,16 +411,16 @@ const PolicyViewer = () => {
                                 )}
 
                                 {item.isInteractiveOrgChart && (
-                                    <InteractiveOrgChart onNavigate={handleScrollToSection} />
+                                    <InteractiveOrgChart onNavigate={handleNavigate} />
                                 )}
 
                                 {item.isRaciMatrix && (
-                                    <div className="border border-gray-200 rounded-lg overflow-x-auto">
-                                        <table className="w-full text-sm text-left border-collapse min-w-[800px]">
-                                            <thead className="bg-slate-800 text-white text-xs uppercase">
+                                    <div className="border border-gray-200 rounded-2xl overflow-x-auto shadow-lg mb-6">
+                                        <table className="w-full text-[11px] text-left border-collapse min-w-[1000px]">
+                                            <thead className="bg-slate-900 text-white font-black tracking-wider uppercase sticky top-0 z-20">
                                                 <tr>
                                                     {RACI_HEADERS.map((h, i) => (
-                                                        <th key={i} className={`px-2 py-3 border border-slate-700 ${i < 2 ? 'sticky left-0 bg-slate-800 z-10' : 'text-center'}`}>
+                                                        <th key={i} className={`px-2 py-4 border-r border-slate-700 whitespace-nowrap ${i < 2 ? 'sticky left-0 bg-slate-900 z-30 shadow-[2px_0_5px_rgba(0,0,0,0.1)]' : 'text-center'}`}>
                                                             {h}
                                                         </th>
                                                     ))}
@@ -886,10 +428,10 @@ const PolicyViewer = () => {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {(item.id === 'raci-state' ? RACI_ROWS_25_10 : RACI_ROWS_25_20).map((row, rIdx) => (
-                                                    <tr key={rIdx} className={row[0].length === 1 ? "bg-slate-50 font-bold" : "hover:bg-orange-50/20"}>
+                                                    <tr key={rIdx} className={row[0].length === 1 ? "bg-slate-50 font-black" : "hover:bg-orange-50/30 transition-colors"}>
                                                         {row.map((cell, cIdx) => (
-                                                            <td key={cIdx} className={`px-2 py-2 border border-gray-100 ${cIdx < 2 ? 'sticky left-0 bg-white' : 'text-center'}`}>
-                                                                {cIdx < 2 ? cell : <RaciCell value={cell} />}
+                                                            <td key={cIdx} className={`px-2 py-3 border-r border-gray-100 ${cIdx < 2 ? 'sticky left-0 bg-white font-bold text-slate-800 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]' : 'text-center'}`}>
+                                                                {cIdx < 2 ? cell : <RaciCell value={cell as string} />}
                                                             </td>
                                                         ))}
                                                     </tr>
