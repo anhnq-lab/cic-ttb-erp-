@@ -35,14 +35,14 @@ const mockChat = async (query: string): Promise<string> => {
 
 export const GeminiService = {
     chat: async (query: string, messageHistory: any[]): Promise<string> => {
-        if (!API_KEY) {
-            console.warn('Gemini API Key missing. Using mock response.');
+        if (!API_KEY || API_KEY.includes('PLACEHOLDER')) {
+            console.warn('Gemini API Key missing or invalid. Using mock response.');
             return mockChat(query);
         }
 
         try {
             const genAI = new GoogleGenerativeAI(API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
             const history = messageHistory.map(msg => ({
                 role: msg.sender === 'user' ? 'user' : 'model',
@@ -73,7 +73,7 @@ export const GeminiService = {
     },
 
     streamResponse: async function* (query: string) {
-        if (!API_KEY) {
+        if (!API_KEY || API_KEY.includes('PLACEHOLDER')) {
             const response = await mockChat(query);
             yield response;
             return;
@@ -81,7 +81,7 @@ export const GeminiService = {
 
         try {
             const genAI = new GoogleGenerativeAI(API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
             const chat = model.startChat({
                 history: [
