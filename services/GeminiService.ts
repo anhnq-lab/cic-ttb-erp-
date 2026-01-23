@@ -4,17 +4,20 @@ import { PROJECTS, TASKS, EMPLOYEES } from '../constants';
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Context builder for the AI
-const buildContext = () => {
+const buildContext = (projects: any[] = [], employees: any[] = []) => {
+    // If no real data passed, fallback to imported constants (or empty)
+    const pList = projects.length > 0 ? projects : PROJECTS;
+    const eList = employees.length > 0 ? employees : EMPLOYEES;
+
     return `
 You are an intelligent assistant for the CIC TTB ERP system (BIM Center).
 Current Data Context:
-- Projects: ${PROJECTS.length} active projects including ${PROJECTS.map(p => p.name).join(', ')}.
-- Employees: ${EMPLOYEES.length} staff members.
-- Key Personnel: ${EMPLOYEES.slice(0, 5).map(e => `${e.name} (${e.role})`).join(', ')}.
+- Projects: ${pList.length} active projects. ${pList.slice(0, 10).map(p => `- ${p.name} (Code: ${p.code}, Status: ${p.status})`).join('\n')}
+- Employees: ${eList.length} staff members. ${eList.slice(0, 5).map(e => `- ${e.name} (${e.role})`).join('\n')}
 
 Your capabilities:
-1. Construct concise, helpful answers about projects, contracts, and personnel.
-2. If asked about specific data not in your context, politely explain you are limited to the ERP data.
+1. Construct concise, helpful answers about projects, contracts, and personnel based on the context above.
+2. If asked about specific data not in your context, politely explain you are limited to the provided ERP data.
 3. Use Vietnamese language.
 `;
 };
@@ -34,7 +37,7 @@ const mockChat = async (query: string): Promise<string> => {
 };
 
 export const GeminiService = {
-    chat: async (query: string, messageHistory: any[]): Promise<string> => {
+    chat: async (query: string, messageHistory: any[], contextData?: { projects?: any[], employees?: any[] }): Promise<string> => {
         if (!API_KEY || API_KEY.includes('PLACEHOLDER')) {
             console.warn('Gemini API Key missing or invalid. Using mock response.');
             return mockChat(query);
@@ -53,11 +56,11 @@ export const GeminiService = {
                 history: [
                     {
                         role: 'user',
-                        parts: [{ text: buildContext() }] // Prime the model with context
+                        parts: [{ text: buildContext(contextData?.projects, contextData?.employees) }]
                     },
                     {
                         role: 'model',
-                        parts: [{ text: "Đã hiểu. Tôi sẵn sàng hỗ trợ thông tin về dự án, nhân sự và quy trình của CIC." }]
+                        parts: [{ text: "Đã hiểu. Tôi sẵn sàng hỗ trợ thông tin về dự án, nhân sự và quy trình của CIC dựa trên dữ liệu thực tế." }]
                     },
                     ...history
                 ]
@@ -66,9 +69,15 @@ export const GeminiService = {
             const result = await chat.sendMessage(query);
             return result.response.text();
 
-        } catch (error) {
-            console.error('Gemini API Error:', error);
-            return "Xin lỗi, hiện tại tôi không thể kết nối với hệ thống AI. Vui lòng thử lại sau.";
+        } catch (error: any) {
+            console.error('------- GEMINI API ERROR -------');
+            console.error('Message:', error.message);
+            console.error('Full Error:', error);
+            if (error.response) {
+                console.error('API Response:', error.response);
+            }
+            console.error('--------------------------------');
+            return `Xin lỗi, hiện tại tôi không thể kết nối với hệ thống AI. (Lỗi: ${error.message || 'Unknown'})`;
         }
     },
 

@@ -52,6 +52,32 @@ const AIChatAssistant: React.FC = () => {
         scrollToBottom();
     }, [messages, isOpen, isTyping]);
 
+
+    // Data for RAG
+    const [projectContext, setProjectContext] = useState<any[]>([]);
+    const [employeeContext, setEmployeeContext] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Fetch data for context when chat opens
+        if (isOpen) {
+            const fetchData = async () => {
+                try {
+                    console.log('Fetching data for AI Context...');
+                    const [p, e] = await Promise.all([
+                        import('../services/project.service').then(m => m.ProjectService.getProjects()),
+                        import('../services/employee.service').then(m => m.EmployeeService.getEmployees())
+                    ]);
+                    setProjectContext(p || []);
+                    setEmployeeContext(e || []);
+                    console.log(`AI Context Loaded: ${p?.length} projects, ${e?.length} employees`);
+                } catch (err) {
+                    console.error('Failed to load AI context:', err);
+                }
+            };
+            fetchData();
+        }
+    }, [isOpen]);
+
     const handleSend = async (textOverride?: string) => {
         const textToSend = textOverride || input;
         if (!textToSend.trim()) return;
@@ -63,11 +89,11 @@ const AIChatAssistant: React.FC = () => {
         setIsTyping(true);
 
         try {
-            // 2. AI Processing mock
-            // In a real app with streaming, we would consume the generator
-            // For this Frontend-Only Refactor, we simulate the "wait" then "stream"
-
-            const fullResponse = await GeminiService.chat(textToSend, []);
+            // 2. AI Processing with REAL DATA CONTEXT
+            const fullResponse = await GeminiService.chat(textToSend, [], {
+                projects: projectContext,
+                employees: employeeContext
+            });
             setIsTyping(false);
 
             // 3. Streaming Effect Simulation
@@ -86,8 +112,8 @@ const AIChatAssistant: React.FC = () => {
                     m.id === botMsgId ? { ...m, text: currentText } : m
                 ));
 
-                // Typing delay
-                await new Promise(r => setTimeout(r, 30));
+                // Typing delay - faster for long text
+                await new Promise(r => setTimeout(r, 15));
             }
 
             // Finish
